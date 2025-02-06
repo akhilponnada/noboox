@@ -3,8 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0f1117;
+  --foreground: #ffffff;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #1a1d27;
+  --secondary-foreground: #9ca3af;
+  --muted: #22252f;
+  --muted-foreground: #6b7280;
+  --accent: #3b82f6;
+  --accent-foreground: #ffffff;
+  --border: rgba(75, 85, 99, 0.5);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -17,5 +26,108 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+}
+
+.prose {
+  @apply text-gray-200;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.prose h1 {
+  @apply text-2xl font-bold mb-6 mt-8 text-white;
+  line-height: 1.3;
+}
+
+.prose h2 {
+  @apply text-xl font-bold mb-4 mt-8 text-white;
+  line-height: 1.3;
+}
+
+.prose h3 {
+  @apply text-lg font-bold mb-3 mt-6 text-white;
+  line-height: 1.3;
+}
+
+.prose p {
+  @apply mb-4 leading-relaxed text-gray-300;
+}
+
+.prose strong {
+  @apply text-white font-semibold;
+}
+
+.prose ol {
+  @apply mb-4 pl-6 list-decimal text-gray-300;
+}
+
+.prose li {
+  @apply mb-2;
+}
+
+.prose sup {
+  @apply text-blue-400 hover:text-blue-300 cursor-pointer ml-0.5;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-gray-700 pl-4 my-4 italic text-gray-300;
+}
+
+.prose a.citation {
+  @apply no-underline hover:no-underline;
+}
+
+.prose a.citation sup {
+  @apply bg-blue-500/10 px-1.5 py-0.5 rounded text-blue-400 hover:text-blue-300 transition-colors;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* Animations */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Input autofill styles */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--foreground);
+  -webkit-box-shadow: 0 0 0px 1000px var(--muted) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Selection */
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
