@@ -2,11 +2,9 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { GoogleSearchClient } from '@/lib/google'
 import { ModelType } from '@/types'
 import OpenAI from 'openai'
-import { DeepseekAI } from '@/lib/deepseek'
 
 const googleAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-const deepseek = new DeepseekAI(process.env.DEEPSEEK_API_KEY || '')
 
 const googleSearch = new GoogleSearchClient(
   process.env.GOOGLE_API_KEY || '',
@@ -116,8 +114,8 @@ function formatContentToHTML(text: string, sources: Array<{ id: string; url: str
   </div>`;
 }
 
-async function searchWithPriority(query: string, depth: 'low' | 'high'): Promise<any[]> {
-  const minSources = depth === 'high' ? DEEP_RESEARCH_MIN_SOURCES : QUICK_RESEARCH_MIN_SOURCES
+async function searchWithPriority(query: string): Promise<any[]> {
+  const minSources = QUICK_RESEARCH_MIN_SOURCES
   let allResults: any[] = []
   
   try {
@@ -166,7 +164,7 @@ async function searchWithPriority(query: string, depth: 'low' | 'high'): Promise
 
 export async function POST(req: Request) {
   try {
-    const { messages, researchDepth = 'low', model = 'gemini-1.5-pro' } = await req.json()
+    const { messages, model = 'gemini-2.0-flash' } = await req.json()
     const query = messages[0].content
 
     if (!query?.trim()) {
@@ -175,7 +173,7 @@ export async function POST(req: Request) {
 
     try {
       // Step 1: Search for relevant sources with priority and rate limiting
-      const searchResults = await searchWithPriority(query, researchDepth)
+      const searchResults = await searchWithPriority(query)
       
       if (!searchResults?.length) {
         throw new Error(
@@ -252,12 +250,13 @@ export async function POST(req: Request) {
       }
 
       // Ensure we have at least the minimum number of sources
-      if (sources.length < (researchDepth === 'high' ? DEEP_RESEARCH_MIN_SOURCES : QUICK_RESEARCH_MIN_SOURCES)) {
+      if (sources.length < QUICK_RESEARCH_MIN_SOURCES) {
         try {
           await checkRateLimit();
-          const backupResults = await googleSearch.search(`${query} research paper site:scholar.google.com`, { 
-            num: Math.max(5, QUICK_RESEARCH_MIN_SOURCES - sources.length) 
-          });
+          const backupResults = await googleSearch.search(
+            `${query} research paper site:scholar.google.com -site:(reddit.com OR quora.com OR medium.com)`, 
+            { num: Math.max(5, QUICK_RESEARCH_MIN_SOURCES - sources.length) }
+          );
           
           if (backupResults?.items?.length > 0) {
             const backupSources = backupResults.items
@@ -308,80 +307,33 @@ Writing style:
 - Draw connections between different sources
 `
 
-        switch (model as ModelType) {
-          case 'gemini-2.0-flash':
-          case 'gemini-1.5-pro':
-            const geminiModel = googleAI.getGenerativeModel({ 
-              model: model,
-              generationConfig: {
-                temperature: researchDepth === 'high' ? 0.7 : 0.6,
-                maxOutputTokens: model === 'gemini-2.0-flash' ? 4096 : 8192,
-                topK: 40,
-                topP: 0.8,
-              }
-            })
-            try {
-              const geminiResult = await geminiModel.generateContent({
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                generationConfig: {
-                  stopSequences: ["</div>"],
-                }
-              })
-              
-              if (!geminiResult.response.text()) {
-                throw new Error('Empty response from Gemini')
-              }
-              
-              content = geminiResult.response.text()
-              
-              // Validate content length
-              if (content.length < 500) {
-                throw new Error('Generated content too short')
-              }
-            } catch (error) {
-              if (error instanceof Error) {
-                if (error.message.includes('503')) {
-                  throw new Error('The AI model is overloaded. Please try again in a few moments.');
-                }
-                throw error;
-              }
-              throw new Error('Failed to generate content with Gemini');
-            }
-            break
+        // Using Gemini model
+        const geminiModel = googleAI.getGenerativeModel({ 
+          model: 'gemini-2.0-flash',
+          generationConfig: {
+            temperature: 0.6,
+            maxOutputTokens: 8192,
+            topK: 40,
+            topP: 0.8,
+          }
+        });
 
-          case 'o3-mini':
-            const o3Response = await openai.chat.completions.create({
-              model: 'o3-mini',
-              messages: [{ role: 'user', content: prompt }],
-              temperature: researchDepth === 'high' ? 0.7 : 0.6,
-              max_tokens: 4096,
-              top_p: 0.8,
-              frequency_penalty: 0.3,
-              presence_penalty: 0.3
-            })
-            
-            content = o3Response.choices[0].message.content || ''
-            if (!content || content.length < 500) {
-              throw new Error('Generated content too short or empty')
-            }
-            break
-
-          case 'deepseek-r1':
-            content = await deepseek.generate(prompt, {
-              temperature: researchDepth === 'high' ? 0.7 : 0.6,
-              maxTokens: 8192,
-              topP: 0.8,
-              frequencyPenalty: 0.3,
-              presencePenalty: 0.3
-            })
-            
-            if (!content || content.length < 500) {
-              throw new Error('Generated content too short or empty')
-            }
-            break
-
-          default:
-            throw new Error(`Unsupported model: ${model}`)
+        const geminiResult = await geminiModel.generateContent({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: {
+            stopSequences: ["</div>"],
+          }
+        })
+        
+        if (!geminiResult.response.text()) {
+          throw new Error('Empty response from Gemini')
+        }
+        
+        content = geminiResult.response.text()
+        
+        // Validate content length
+        if (content.length < 500) {
+          throw new Error('Generated content too short')
         }
 
         if (!content?.trim()) {
@@ -417,7 +369,7 @@ Writing style:
         sourceUsagePercent: Math.round((content.match(/\[\d+\]/g) || []).length / sources.length * 100),
         wordCount,
         charCount,
-        model
+        model: 'gemini-2.0-flash'
       }
 
       return new Response(JSON.stringify({

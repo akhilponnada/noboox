@@ -6,6 +6,8 @@ import { Search, ExternalLink, ArrowRight, Check, X, Pencil } from 'lucide-react
 import { ResearchDepth, ModelType } from '@/types'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
+import ThemeToggle from '@/components/ThemeToggle'
+import { useTheme } from '@/lib/theme'
 
 // Import Editor and ResearchSteps dynamically to avoid SSR issues
 const Editor = dynamic(() => import('@/components/Editor'), { ssr: false })
@@ -30,11 +32,11 @@ type ResearchStep = {
 }
 
 export default function Home() {
+  const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [content, setContent] = useState('')
   const [isResearching, setIsResearching] = useState(false)
-  const [researchDepth, setResearchDepth] = useState<ResearchDepth>('low')
-  const [selectedModel, setSelectedModel] = useState<ModelType>('gemini-1.5-pro')
+  const [selectedModel, setSelectedModel] = useState<ModelType>('gemini-2.0-flash')
   const [isThinking, setIsThinking] = useState(false)
   const [sources, setSources] = useState<Array<{
     id: string;
@@ -84,6 +86,13 @@ export default function Home() {
   const [wordCount, setWordCount] = useState(0)
   const [charCount, setCharCount] = useState(0)
   const [showSaveNotification, setShowSaveNotification] = useState(false)
+  const [researchPlan, setResearchPlan] = useState<{
+    query: string;
+    suggestedDirections: string[];
+    explanation: string;
+  } | null>(null)
+  const [isConfirmingResearch, setIsConfirmingResearch] = useState(false)
+  const [confirmedDirection, setConfirmedDirection] = useState<ResearchDirection | null>(null)
 
   // Handle client-side mounting
   useEffect(() => {
@@ -114,6 +123,8 @@ export default function Home() {
     setCurrentQuery(query)
     setIsThinking(false)
     setIsEditing(false)
+    setResearchPlan(null)
+    setConfirmedDirection(null)
 
     // Reset research steps
     setResearchSteps(steps => steps.map(step => ({ ...step, status: 'waiting' })))
@@ -130,8 +141,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           messages: [{ role: 'user', content: query }],
-          researchDepth,
-          model: researchDepth === 'high' ? selectedModel : 'gemini-2.0-flash'
+          model: selectedModel
         })
       });
 
@@ -210,6 +220,80 @@ export default function Home() {
     }
   }
 
+  const handleConfirmResearch = async (modifiedDirections?: string[]) => {
+    if (!researchPlan) return;
+
+    setIsConfirmingResearch(false);
+    setIsResearching(true);
+    updateStepStatus('search', 'loading');
+
+    try {
+      const response = await fetch('/api/research', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: query }],
+          researchDepth: 'deep',
+          confirmedDirection: {
+            query: researchPlan.query,
+            context: '',
+            goals: modifiedDirections || researchPlan.suggestedDirections
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to confirm research');
+      }
+
+      const data = await response.json();
+      
+      if (data.content) {
+        setContent(data.content);
+        setMetadata({
+          sourceCount: data.metadata?.sourceCount || 0,
+          citationsUsed: data.metadata?.citationsUsed || 0,
+          sourceUsagePercent: data.metadata?.sourceUsagePercent || 0,
+          wordCount: data.metadata?.wordCount || 0,
+          charCount: data.metadata?.charCount || 0
+        });
+        setWordCount(data.metadata?.wordCount || 0);
+        setCharCount(data.metadata?.charCount || 0);
+        setEditedContent(data.content);
+        
+        setTimeout(() => {
+          updateStepStatus('generate', 'complete');
+        }, 500);
+      } else {
+        throw new Error('No content in response');
+      }
+    } catch (error) {
+      console.error('Error confirming research:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      
+      setResearchSteps(steps => 
+        steps.map(step => 
+          step.status === 'waiting' || step.status === 'loading' 
+            ? { ...step, status: 'error' } 
+            : step
+        )
+      );
+      
+      setContent(`<div class="text-red-400 text-center py-8">
+        <p class="mb-4">Sorry, something went wrong while confirming your research.</p>
+        <div class="text-sm bg-red-900/20 rounded-lg p-4 mb-4">${errorMessage}</div>
+        <p class="text-sm">Please try again or try a different query.</p>
+      </div>`);
+    } finally {
+      setTimeout(() => {
+        setIsResearching(false);
+        setIsThinking(false);
+      }, 1000);
+    }
+  }
+
   // Add this helper function to convert HTML to Markdown
   const htmlToMarkdown = (html: string): string => {
     return html
@@ -275,126 +359,71 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen bg-black text-white overflow-hidden">
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {!hasStarted ? (
-          <motion.div 
-            className="flex flex-col min-h-screen relative overflow-hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            {/* Header with Logo */}
-            <motion.div 
-              className="w-full flex justify-center pt-12"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-            >
-              {mounted && (
-                <Image 
-                  src="/images/logo.svg" 
-                  alt="Noobox Logo" 
-                  width={200} 
-                  height={200}
-                  className="w-32 h-32"
-                  priority
-                />
-              )}
-            </motion.div>
+    <main className={`min-h-screen flex flex-col relative ${
+      theme === 'dark' 
+        ? 'bg-black text-white' 
+        : 'bg-white text-gray-900'
+    }`}>
+      <ThemeToggle />
+      
+      {/* Logo */}
+      <div className={`absolute ${!hasStarted ? 'top-12 left-1/2 -translate-x-1/2' : 'top-0 left-6'} z-10`}>
+        <Image 
+          src={theme === 'dark' ? "/images/logo.svg" : "/images/logo-light.svg"}
+          alt="Noobox Logo" 
+          width={129} 
+          height={129}
+          className="w-[129px] h-[129px]"
+          priority
+        />
+      </div>
 
-            {/* Centered Content */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <motion.div 
-                className="w-full max-w-2xl px-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-              >
-                <div className="bg-zinc-900/50 backdrop-blur-lg rounded-3xl p-8 border border-zinc-800/50 shadow-2xl">
-                  <h2 className="text-2xl font-medium text-zinc-100 mb-8">How can I help you today?</h2>
-                  
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="flex flex-col space-y-4">
-                      {/* Research Type & Model Selection */}
-                      <div className="flex items-center gap-3">
-                        <div className="flex p-1 gap-1 bg-zinc-800/50 rounded-xl border border-zinc-700/50">
-                          <button
-                            type="button"
-                            onClick={() => setResearchDepth('low')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                              researchDepth === 'low'
-                                ? 'bg-white text-black shadow-lg'
-                                : 'text-zinc-400 hover:text-white hover:bg-zinc-700/50'
-                            }`}
-                          >
-                            Quick Research
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setResearchDepth('high')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                              researchDepth === 'high'
-                                ? 'bg-white text-black shadow-lg'
-                                : 'text-zinc-400 hover:text-white hover:bg-zinc-700/50'
-                            }`}
-                          >
-                            Deep Research
-                          </button>
-                        </div>
-                        {researchDepth === 'high' && (
-                          <div className="relative flex-1">
-                            <select
-                              value={selectedModel}
-                              onChange={(e) => setSelectedModel(e.target.value as ModelType)}
-                              className="w-full appearance-none bg-zinc-800/50 border border-zinc-700/50 text-zinc-100 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-transparent transition-all hover:bg-zinc-700/50"
-                            >
-                              <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                              <option value="o3-mini">O3 Mini</option>
-                              <option value="deepseek-r1">DeepSeek Reasoner</option>
-                            </select>
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                              <svg className="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Search Input */}
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={query}
-                          onChange={(e) => setQuery(e.target.value)}
-                          placeholder="Enter your research query..."
-                          className="w-full bg-zinc-800/50 border border-zinc-700/50 text-zinc-100 rounded-xl pl-12 pr-12 py-3 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/10 focus:border-transparent transition-all"
-                        />
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" />
-                        <button
-                          type="submit"
-                          disabled={isResearching || !query.trim()}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 bg-white hover:bg-zinc-200 disabled:bg-zinc-600 disabled:cursor-not-allowed rounded-lg p-2 transition-all"
-                        >
-                          <ArrowRight className="w-4 h-4 text-black" />
-                        </button>
-                      </div>
-                    </div>
-                  </form>
+      {!hasStarted ? (
+        /* Initial Search View */
+        <div className="flex-1 flex items-center justify-center w-full">
+          <div className="w-full max-w-2xl mx-auto px-4 text-center">
+            <div className="space-y-10">
+              <h1 className="font-['Varela_Round'] text-[42px] font-normal tracking-tight leading-tight">
+                Research with Confidence
+              </h1>
+              
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Input Box */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="What do you want to know?"
+                    className={`w-full px-6 py-4 rounded-full focus:outline-none focus:ring-1 transition-colors ${
+                      theme === 'dark'
+                        ? 'bg-zinc-900 text-white placeholder-gray-400 focus:ring-white/20'
+                        : 'bg-gray-100 text-gray-900 placeholder-gray-500 focus:ring-gray-300'
+                    }`}
+                    disabled={isResearching}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isResearching || !query.trim()}
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-full transition-colors ${
+                      theme === 'dark'
+                        ? 'bg-zinc-800 text-white hover:bg-zinc-700'
+                        : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
                 </div>
-              </motion.div>
+              </form>
             </div>
-            
-            {/* Copyright text */}
-            <div className="absolute bottom-6 text-center text-zinc-500 text-sm w-full">
-              © Noboox 2025
-            </div>
-          </motion.div>
-        ) : (
+          </div>
+        </div>
+      ) : (
+        /* Research Results View */
+        <div className="flex-1 w-full pt-6 mb-16">
           <div className="flex h-screen">
             <motion.div 
-              className="flex-1 overflow-auto p-6"
+              className="flex-1 overflow-y-auto p-6"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
@@ -507,14 +536,18 @@ export default function Home() {
             </motion.div>
 
             <motion.div 
-              className="w-[400px] border-l border-white/10 overflow-auto"
+              className={`w-[400px] border-l h-screen overflow-y-auto fixed right-0 top-0 pt-6 ${
+                theme === 'dark'
+                  ? 'border-white/10 bg-black'
+                  : 'border-gray-200 bg-white'
+              }`}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3 }}
             >
               <div className="p-6">
                 <h2 className="text-lg font-medium text-white mb-4">Sources</h2>
-                <div className="space-y-4">
+                <div className="space-y-4 pb-16">
                   <AnimatePresence mode="sync">
                     {sources.map((source, i) => (
                       <motion.div
@@ -572,7 +605,67 @@ export default function Home() {
               </div>
             </motion.div>
           </div>
-        )}
+        </div>
+      )}
+
+      {isConfirmingResearch && researchPlan && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-zinc-900 rounded-lg p-6 max-w-2xl w-full space-y-4">
+            <h2 className="text-xl font-semibold">Confirm Research Plan</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium text-gray-400">Reformulated Query</h3>
+                <p className="mt-1">{researchPlan.query}</p>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-400">Research Directions</h3>
+                <ul className="mt-2 space-y-2">
+                  {researchPlan.suggestedDirections.map((direction, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="text-gray-500">{index + 1}.</span>
+                      <span>{direction}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-gray-400">Research Approach</h3>
+                <p className="mt-1 text-sm">{researchPlan.explanation}</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setIsConfirmingResearch(false);
+                  setIsResearching(false);
+                  setResearchPlan(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleConfirmResearch()}
+                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Start Research
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fixed Footer */}
+      <div className={`fixed bottom-0 left-0 right-0 text-center py-3 text-xs border-t backdrop-blur-sm z-50 ${
+        theme === 'dark'
+          ? 'bg-black/80 text-zinc-500 border-white/5'
+          : 'bg-white/80 text-gray-500 border-gray-200'
+      }`}>
+        © Noboox 2025
       </div>
     </main>
   )

@@ -1,10 +1,6 @@
-export type ModelType = 
-  | 'gemini-1.5-pro'
-  | 'gemini-2.0-flash'
-  | 'o3-mini'
-  | 'deepseek-r1';
+export type ModelType = 'gemini-2.0-flash';
 
-export type ResearchDepth = 'low' | 'high';
+export type ResearchDepth = 'quick';
 
 export interface Source {
   title: string;

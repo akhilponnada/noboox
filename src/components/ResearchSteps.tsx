@@ -63,7 +63,14 @@ export default function ResearchSteps({ steps, isResearching }: ResearchStepsPro
                 <Loader className="w-4 h-4 text-purple-500 animate-spin" />
               )}
               {step.status === 'complete' && (
-                <Check className="w-4 h-4 text-green-500" />
+                <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
+                  <Check className="w-3.5 h-3.5 text-black" />
+                </div>
+              )}
+              {step.status === 'error' && (
+                <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
+                  <span className="text-white text-xs">!</span>
+                </div>
               )}
             </div>
           </motion.div>
