@@ -6,8 +6,6 @@ import { Search, ExternalLink, ArrowRight, Check, X, Pencil } from 'lucide-react
 import { ResearchDepth, ModelType } from '@/types'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
-import ThemeToggle from '@/components/ThemeToggle'
-import { useTheme } from '@/lib/theme'
 
 // Import Editor and ResearchSteps dynamically to avoid SSR issues
 const Editor = dynamic(() => import('@/components/Editor'), { ssr: false })
@@ -32,7 +30,6 @@ type ResearchStep = {
 }
 
 export default function Home() {
-  const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [content, setContent] = useState('')
   const [isResearching, setIsResearching] = useState(false)
@@ -359,17 +356,11 @@ export default function Home() {
   };
 
   return (
-    <main className={`min-h-screen flex flex-col relative ${
-      theme === 'dark' 
-        ? 'bg-black text-white' 
-        : 'bg-white text-gray-900'
-    }`}>
-      <ThemeToggle />
-      
+    <main className="min-h-screen flex flex-col bg-black relative">
       {/* Logo */}
       <div className={`absolute ${!hasStarted ? 'top-12 left-1/2 -translate-x-1/2' : 'top-0 left-6'} z-10`}>
         <Image 
-          src={theme === 'dark' ? "/images/logo.svg" : "/images/logo-light.svg"}
+          src="/images/logo.svg" 
           alt="Noobox Logo" 
           width={129} 
           height={129}
@@ -383,7 +374,7 @@ export default function Home() {
         <div className="flex-1 flex items-center justify-center w-full">
           <div className="w-full max-w-2xl mx-auto px-4 text-center">
             <div className="space-y-10">
-              <h1 className="font-['Varela_Round'] text-[42px] font-normal tracking-tight leading-tight">
+              <h1 className="font-['Varela_Round'] text-[42px] font-normal text-white tracking-tight leading-tight">
                 Research with Confidence
               </h1>
               
@@ -395,21 +386,13 @@ export default function Home() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="What do you want to know?"
-                    className={`w-full px-6 py-4 rounded-full focus:outline-none focus:ring-1 transition-colors ${
-                      theme === 'dark'
-                        ? 'bg-zinc-900 text-white placeholder-gray-400 focus:ring-white/20'
-                        : 'bg-gray-100 text-gray-900 placeholder-gray-500 focus:ring-gray-300'
-                    }`}
+                    className="w-full px-6 py-4 bg-zinc-900 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-white/20"
                     disabled={isResearching}
                   />
                   <button
                     type="submit"
                     disabled={isResearching || !query.trim()}
-                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-full transition-colors ${
-                      theme === 'dark'
-                        ? 'bg-zinc-800 text-white hover:bg-zinc-700'
-                        : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-zinc-800 text-white rounded-full hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <ArrowRight className="w-5 h-5" />
                   </button>
@@ -536,11 +519,7 @@ export default function Home() {
             </motion.div>
 
             <motion.div 
-              className={`w-[400px] border-l h-screen overflow-y-auto fixed right-0 top-0 pt-6 ${
-                theme === 'dark'
-                  ? 'border-white/10 bg-black'
-                  : 'border-gray-200 bg-white'
-              }`}
+              className="w-[400px] border-l border-white/10 h-screen overflow-y-auto fixed right-0 top-0 pt-6"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3 }}
@@ -660,11 +639,7 @@ export default function Home() {
       )}
 
       {/* Fixed Footer */}
-      <div className={`fixed bottom-0 left-0 right-0 text-center py-3 text-xs border-t backdrop-blur-sm z-50 ${
-        theme === 'dark'
-          ? 'bg-black/80 text-zinc-500 border-white/5'
-          : 'bg-white/80 text-gray-500 border-gray-200'
-      }`}>
+      <div className="fixed bottom-0 left-0 right-0 text-center py-3 text-zinc-500 text-xs bg-black/80 backdrop-blur-sm border-t border-white/5 z-50">
         © Noboox 2025
       </div>
     </main>
