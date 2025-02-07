@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, ExternalLink, ArrowRight, Check, X, Pencil } from 'lucide-react'
-import { ResearchDepth, ModelType } from '@/types'
+import { ArrowRight, Check, Pencil, ExternalLink } from 'lucide-react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
 
@@ -33,8 +32,6 @@ export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [content, setContent] = useState('')
   const [isResearching, setIsResearching] = useState(false)
-  const [selectedModel, setSelectedModel] = useState<ModelType>('gemini-2.0-flash')
-  const [isThinking, setIsThinking] = useState(false)
   const [sources, setSources] = useState<Array<{
     id: string;
     title: string;
@@ -78,10 +75,8 @@ export default function Home() {
     citationsUsed: number
     sourceUsagePercent: number
     wordCount: number
-    charCount: number
   } | null>(null)
   const [wordCount, setWordCount] = useState(0)
-  const [charCount, setCharCount] = useState(0)
   const [showSaveNotification, setShowSaveNotification] = useState(false)
   const [researchPlan, setResearchPlan] = useState<{
     query: string;
@@ -89,7 +84,6 @@ export default function Home() {
     explanation: string;
   } | null>(null)
   const [isConfirmingResearch, setIsConfirmingResearch] = useState(false)
-  const [confirmedDirection, setConfirmedDirection] = useState<ResearchDirection | null>(null)
 
   // Handle client-side mounting
   useEffect(() => {
@@ -118,10 +112,8 @@ export default function Home() {
     setContent('')
     setSources([])
     setCurrentQuery(query)
-    setIsThinking(false)
     setIsEditing(false)
     setResearchPlan(null)
-    setConfirmedDirection(null)
 
     // Reset research steps
     setResearchSteps(steps => steps.map(step => ({ ...step, status: 'waiting' })))
@@ -137,8 +129,7 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: query }],
-          model: selectedModel
+          messages: [{ role: 'user', content: query }]
         })
       });
 
@@ -176,11 +167,9 @@ export default function Home() {
           sourceCount: data.metadata?.sourceCount || 0,
           citationsUsed: data.metadata?.citationsUsed || 0,
           sourceUsagePercent: data.metadata?.sourceUsagePercent || 0,
-          wordCount: data.metadata?.wordCount || 0,
-          charCount: data.metadata?.charCount || 0
+          wordCount: data.metadata?.wordCount || 0
         })
         setWordCount(data.metadata?.wordCount || 0)
-        setCharCount(data.metadata?.charCount || 0)
         setEditedContent(data.content)
         
         // Short delay before marking generate as complete
@@ -212,7 +201,6 @@ export default function Home() {
       // Don't immediately hide steps
       setTimeout(() => {
         setIsResearching(false)
-        setIsThinking(false)
       }, 1000)
     }
   }
@@ -253,11 +241,9 @@ export default function Home() {
           sourceCount: data.metadata?.sourceCount || 0,
           citationsUsed: data.metadata?.citationsUsed || 0,
           sourceUsagePercent: data.metadata?.sourceUsagePercent || 0,
-          wordCount: data.metadata?.wordCount || 0,
-          charCount: data.metadata?.charCount || 0
+          wordCount: data.metadata?.wordCount || 0
         });
         setWordCount(data.metadata?.wordCount || 0);
-        setCharCount(data.metadata?.charCount || 0);
         setEditedContent(data.content);
         
         setTimeout(() => {
@@ -286,32 +272,9 @@ export default function Home() {
     } finally {
       setTimeout(() => {
         setIsResearching(false);
-        setIsThinking(false);
       }, 1000);
     }
   }
-
-  // Add this helper function to convert HTML to Markdown
-  const htmlToMarkdown = (html: string): string => {
-    return html
-      // Convert headings back to markdown
-      .replace(/<h1[^>]*>(.*?)<\/h1>/g, '# $1')
-      .replace(/<h2[^>]*>(.*?)<\/h2>/g, '## $1')
-      .replace(/<h3[^>]*>(.*?)<\/h3>/g, '### $1')
-      // Convert formatting back to markdown
-      .replace(/<strong[^>]*>(.*?)<\/strong>/g, '**$1**')
-      .replace(/<em[^>]*>(.*?)<\/em>/g, '*$1*')
-      // Convert lists back to markdown
-      .replace(/<ul[^>]*>(.*?)<\/ul>/g, '$1')
-      .replace(/<li[^>]*>(.*?)<\/li>/g, '- $1')
-      // Convert paragraphs back to plain text
-      .replace(/<p[^>]*>(.*?)<\/p>/g, '$1')
-      // Remove any remaining HTML tags
-      .replace(/<[^>]+>/g, '')
-      // Fix double spaces and clean up
-      .replace(/\s+/g, ' ')
-      .trim();
-  };
 
   const handleContentChange = (html: string) => {
     setContent(html)
@@ -331,29 +294,6 @@ export default function Home() {
     }
     setIsEditing(!isEditing)
   }
-
-  const renderMarkdown = (content: string) => {
-    // First convert markdown to HTML
-    const html = content
-      // Format headings
-      .replace(/^# (.*$)/gm, '<h1 class="text-4xl font-bold my-4">$1</h1>')
-      .replace(/^## (.*$)/gm, '<h2 class="text-2xl font-bold my-3">$1</h2>')
-      .replace(/^### (.*$)/gm, '<h3 class="text-xl font-bold my-2">$1</h3>')
-      // Format bold and italic
-      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
-      // Format lists
-      .replace(/^- (.*$)/gm, '<li class="ml-4">$1</li>')
-      .replace(/(<li.*\n*)+/g, '<ul class="list-disc my-2">$&</ul>')
-      // Format paragraphs
-      .replace(/^(?!<h[1-6]|<ul|<ol|<li|<blockquote|<pre|<p).*$/gm, '<p class="my-2">$&</p>');
-
-    return (
-      <div className="markdown-content prose prose-invert max-w-none">
-        <div dangerouslySetInnerHTML={{ __html: html }} />
-      </div>
-    );
-  };
 
   return (
     <main className="min-h-screen flex flex-col bg-black relative">
@@ -439,7 +379,6 @@ export default function Home() {
                       >
                         <ResearchSteps 
                           steps={researchSteps}
-                          isResearching={isResearching}
                         />
                       </motion.div>
                     )}

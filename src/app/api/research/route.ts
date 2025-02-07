@@ -1,11 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { GoogleSearchClient } from '@/lib/google'
-import { ModelType } from '@/types'
-import OpenAI from 'openai'
 
 const googleAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-
 const googleSearch = new GoogleSearchClient(
   process.env.GOOGLE_API_KEY || '',
   process.env.GOOGLE_CSE_ID || ''
@@ -13,7 +9,6 @@ const googleSearch = new GoogleSearchClient(
 
 // Search configuration
 const QUICK_RESEARCH_MIN_SOURCES = 10
-const DEEP_RESEARCH_MIN_SOURCES = 15
 const ACADEMIC_DOMAINS = [
   'scholar.google.com',
   'arxiv.org',
@@ -114,9 +109,25 @@ function formatContentToHTML(text: string, sources: Array<{ id: string; url: str
   </div>`;
 }
 
-async function searchWithPriority(query: string): Promise<any[]> {
+interface SearchResult {
+  title: string;
+  link: string;
+  snippet: string;
+  pagemap?: {
+    metatags?: Array<{
+      'og:title'?: string;
+      'og:description'?: string;
+      'og:image'?: string;
+    }>;
+    cse_image?: Array<{
+      src: string;
+    }>;
+  };
+}
+
+async function searchWithPriority(query: string): Promise<SearchResult[]> {
   const minSources = QUICK_RESEARCH_MIN_SOURCES
-  let allResults: any[] = []
+  let allResults: SearchResult[] = []
   
   try {
     // First try academic sources
@@ -124,7 +135,7 @@ async function searchWithPriority(query: string): Promise<any[]> {
     await checkRateLimit()
     const academicResponse = await googleSearch.search(academicQuery)
     
-    if (academicResponse?.items?.length > 0) {
+    if (academicResponse?.items && academicResponse.items.length > 0) {
       allResults = [...academicResponse.items]
     }
 
@@ -134,7 +145,7 @@ async function searchWithPriority(query: string): Promise<any[]> {
       const generalQuery = `${query} -site:(reddit.com OR quora.com OR medium.com)`
       const generalResponse = await googleSearch.search(generalQuery)
       
-      if (generalResponse?.items?.length > 0) {
+      if (generalResponse?.items && generalResponse.items.length > 0) {
         allResults = [...allResults, ...generalResponse.items]
       }
     }
@@ -145,7 +156,7 @@ async function searchWithPriority(query: string): Promise<any[]> {
       const backupQuery = `${query} research paper`
       const backupResponse = await googleSearch.search(backupQuery)
       
-      if (backupResponse?.items?.length > 0) {
+      if (backupResponse?.items && backupResponse.items.length > 0) {
         allResults = [...allResults, ...backupResponse.items]
       }
     }
@@ -164,7 +175,7 @@ async function searchWithPriority(query: string): Promise<any[]> {
 
 export async function POST(req: Request) {
   try {
-    const { messages, model = 'gemini-2.0-flash' } = await req.json()
+    const { messages } = await req.json()
     const query = messages[0].content
 
     if (!query?.trim()) {
@@ -192,7 +203,7 @@ export async function POST(req: Request) {
           title: item.title || '',
           url: item.link || '',
           snippet: item.snippet || '',
-          favicon: item.pagemap?.cse_image?.[0]?.src
+          favicon: getFavicon(item)
         }))
         .filter(source => source.url && source.title)
 
@@ -220,14 +231,14 @@ export async function POST(req: Request) {
               await checkRateLimit();
               const result = await googleSearch.search(`${citation} research paper pdf`, { num: 1 });
               
-              if (result?.items?.length > 0) {
+              if (result?.items && result.items.length > 0) {
                 const newSources = result.items
                   .map((item, i) => ({
                     id: (sources.length + i + 1).toString(),
                     title: item.title || '',
                     url: item.link || '',
                     snippet: item.snippet || '',
-                    favicon: item.pagemap?.cse_image?.[0]?.src
+                    favicon: getFavicon(item)
                   }))
                   .filter(source => 
                     source.url && 
@@ -258,14 +269,14 @@ export async function POST(req: Request) {
             { num: Math.max(5, QUICK_RESEARCH_MIN_SOURCES - sources.length) }
           );
           
-          if (backupResults?.items?.length > 0) {
+          if (backupResults?.items && backupResults.items.length > 0) {
             const backupSources = backupResults.items
               .map((item, i) => ({
                 id: (sources.length + i + 1).toString(),
                 title: item.title || '',
                 url: item.link || '',
                 snippet: item.snippet || '',
-                favicon: item.pagemap?.cse_image?.[0]?.src
+                favicon: getFavicon(item)
               }))
               .filter(source => 
                 source.url && 
@@ -441,4 +452,9 @@ Writing style:
       headers: { 'Content-Type': 'application/json' }
     })
   }
+}
+
+// Helper function to safely extract favicon from search result
+function getFavicon(item: SearchResult): string | undefined {
+  return item.pagemap?.metatags?.[0]?.['og:image'] || item.pagemap?.cse_image?.[0]?.src;
 } 

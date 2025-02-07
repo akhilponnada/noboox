@@ -10,10 +10,9 @@ type ResearchStep = {
 
 interface ResearchStepsProps {
   steps: ResearchStep[];
-  isResearching: boolean;
 }
 
-export default function ResearchSteps({ steps, isResearching }: ResearchStepsProps) {
+export default function ResearchSteps({ steps }: ResearchStepsProps) {
   return (
     <motion.div 
       className="space-y-3"
