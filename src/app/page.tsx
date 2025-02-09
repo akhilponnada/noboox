@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, Check, Pencil, ExternalLink, Twitter, Youtube, Instagram, Linkedin, Facebook, TrendingUp } from 'lucide-react'
+import { ArrowRight, Check, Pencil, ExternalLink, Twitter, Youtube, Instagram, Linkedin, Facebook, TrendingUp, LucideProps } from 'lucide-react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
 
@@ -27,6 +27,10 @@ type ResearchStep = {
   description: string;
   status: 'waiting' | 'loading' | 'complete' | 'error';
 }
+
+const IconWrapper = ({ icon: Icon, className }: { icon: React.ComponentType<LucideProps>; className: string }) => {
+  return <Icon size={24} className={className} />;
+};
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
@@ -84,6 +88,7 @@ export default function Home() {
     explanation: string;
   } | null>(null)
   const [isConfirmingResearch, setIsConfirmingResearch] = useState(false)
+  const [isSourcesPanelOpen, setIsSourcesPanelOpen] = useState(false)
 
   const trendingQueries = [
     "What are the long-term psychological effects of social media usage on adolescent development and mental well-being?",
@@ -133,7 +138,7 @@ export default function Home() {
     )
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!query.trim()) return
 
@@ -372,7 +377,7 @@ export default function Home() {
                     <input
                       type="text"
                       value={query}
-                      onChange={(e) => setQuery(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
                       placeholder="What do you want to know?"
                       className="search-input"
                       disabled={isResearching}
@@ -382,7 +387,7 @@ export default function Home() {
                       disabled={isResearching || !query.trim()}
                       className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-zinc-800 text-white rounded-full hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg"
                     >
-                      <ArrowRight className="w-5 h-5" />
+                      <IconWrapper icon={ArrowRight} className="w-5 h-5" />
                     </button>
                   </div>
                 </form>
@@ -395,7 +400,7 @@ export default function Home() {
                   transition={{ duration: 0.6, delay: 0.4 }}
                 >
                   <div className="flex items-center justify-center space-x-2 text-gray-400 mb-6">
-                    <TrendingUp className="w-4 h-4" />
+                    <IconWrapper icon={TrendingUp} className="w-4 h-4" />
                     <span className="text-sm font-medium">Trending Researches</span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto px-4">
@@ -424,7 +429,7 @@ export default function Home() {
             className="w-full"
           >
             {/* Header */}
-            <header className="fixed top-0 left-0 right-0 h-16 bg-black border-b border-white/10 z-10 flex items-center justify-center">
+            <header className="fixed top-0 left-0 right-0 h-16 bg-black border-b border-white/10 z-10 flex items-center justify-between px-4 md:justify-center">
               <div className="w-32 relative">
                 <Image
                   src="/images/logo.svg"
@@ -435,6 +440,16 @@ export default function Home() {
                   className="object-contain"
                 />
               </div>
+              {/* Mobile Sources Toggle */}
+              {!isResearching && content && (
+                <button
+                  onClick={() => setIsSourcesPanelOpen(!isSourcesPanelOpen)}
+                  className="md:hidden flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-zinc-900/50 border border-white/10"
+                >
+                  <span className="text-sm text-gray-400">Sources</span>
+                  <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-xs text-gray-400">{sources.length}</span>
+                </button>
+              )}
             </header>
             
             {/* Add padding-top to the content to account for fixed header */}
@@ -442,12 +457,12 @@ export default function Home() {
               <div className="flex-1 w-full">
                 <div className="flex h-screen relative">
                   <motion.div 
-                    className="flex-1 overflow-y-auto hide-scrollbar p-6 mr-[380px]"
+                    className="flex-1 overflow-y-auto hide-scrollbar p-6 md:mr-[380px]"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <div className="w-full pl-[22%] pr-[5%]">
+                    <div className="w-full md:pl-[22%] md:pr-[5%]">
                       {currentQuery && (
                         <motion.div 
                           className="mb-8"
@@ -488,43 +503,43 @@ export default function Home() {
                               className="relative"
                             >
                               {metadata && (
-                                <div className="mb-6 flex items-center justify-between">
-                                  <div className="flex items-center space-x-4 text-sm">
-                                    <div className="px-3 py-1.5 rounded-lg bg-zinc-900">
+                                <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex flex-wrap items-center gap-2 text-xs md:text-sm">
+                                    <div className="px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-zinc-900">
                                       <span className="text-gray-400">Sources: </span>
                                       <span className="text-white">{metadata?.sourceCount}</span>
                                     </div>
-                                    <div className="px-3 py-1.5 rounded-lg bg-zinc-900">
+                                    <div className="px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-zinc-900">
                                       <span className="text-gray-400">Citations: </span>
                                       <span className="text-white">{metadata?.citationsUsed}</span>
                                       <span className="text-gray-500 text-xs ml-1">({metadata?.sourceUsagePercent}%)</span>
                                     </div>
-                                    <div className="px-3 py-1.5 rounded-lg bg-zinc-900">
+                                    <div className="px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-zinc-900">
                                       <span className="text-gray-400">Words: </span>
                                       <span className="text-white word-count">{wordCount}</span>
                                     </div>
                                   </div>
-                                  <div className="flex items-center space-x-3">
+                                  <div className="flex items-center gap-2 md:gap-3">
                                     <AnimatePresence mode="sync">
                                       {showSaveNotification && (
                                         <motion.div
                                           initial={{ opacity: 0, x: 20 }}
                                           animate={{ opacity: 1, x: 0 }}
                                           exit={{ opacity: 0, x: 20 }}
-                                          className="px-3 py-1.5 rounded-lg bg-green-500/20 border border-green-500/30"
+                                          className="px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-green-500/20 border border-green-500/30"
                                         >
-                                          <span className="text-green-300 text-sm">Changes saved</span>
+                                          <span className="text-green-300 text-xs md:text-sm">Changes saved</span>
                                         </motion.div>
                                       )}
                                     </AnimatePresence>
                                     {isEditing && (
-                                      <div className="px-3 py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/30">
-                                        <span className="text-purple-300 text-sm">Edit Mode</span>
+                                      <div className="px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/30">
+                                        <span className="text-purple-300 text-xs md:text-sm">Edit Mode</span>
                                       </div>
                                     )}
                                     <button
                                       onClick={handleEditToggle}
-                                      className={`p-2 rounded-lg transition-colors ${
+                                      className={`p-1.5 md:p-2 rounded-lg transition-colors ${
                                         isEditing 
                                           ? 'bg-purple-500/20 hover:bg-purple-500/30' 
                                           : 'hover:bg-zinc-800'
@@ -532,9 +547,9 @@ export default function Home() {
                                       title={isEditing ? "Save changes" : "Edit"}
                                     >
                                       {isEditing ? (
-                                        <Check className="w-4 h-4 text-purple-500" />
+                                        <IconWrapper icon={Check} className="w-3.5 h-3.5 md:w-4 md:h-4 text-purple-500" />
                                       ) : (
-                                        <Pencil className="w-4 h-4 text-zinc-400" />
+                                        <IconWrapper icon={Pencil} className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-400" />
                                       )}
                                     </button>
                                   </div>
@@ -553,10 +568,10 @@ export default function Home() {
                     </div>
                   </motion.div>
 
-                  {/* Sources panel - only show when content exists and not researching */}
+                  {/* Sources panel - Desktop */}
                   {!isResearching && content && (
                     <motion.div 
-                      className="fixed right-6 top-24 bottom-8 bg-zinc-900 backdrop-blur-sm rounded-xl border border-white/10 shadow-2xl flex flex-col w-[380px]"
+                      className="hidden md:flex fixed right-6 top-24 bottom-8 bg-zinc-900 backdrop-blur-sm rounded-xl border border-white/10 shadow-2xl flex-col w-[380px]"
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.3 }}
@@ -603,7 +618,7 @@ export default function Home() {
                                             src={source.favicon} 
                                             alt="" 
                                             className="w-4 h-4 rounded-sm"
-                                            onError={(e) => {
+                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                                               const target = e.target as HTMLImageElement;
                                               target.src = `https://www.google.com/s2/favicons?domain=${getHostname(source.url)}`;
                                             }}
@@ -632,7 +647,7 @@ export default function Home() {
                                         )}
                                         <div className="mt-2 flex items-center space-x-2">
                                           <div className="text-xs text-gray-500 flex items-center">
-                                            <ExternalLink className="w-3 h-3 mr-1" />
+                                            <IconWrapper icon={ExternalLink} className="w-3 h-3 mr-1" />
                                             {getHostname(source.url)}
                                           </div>
                                         </div>
@@ -646,6 +661,147 @@ export default function Home() {
                         </div>
                       </div>
                     </motion.div>
+                  )}
+
+                  {/* Sources panel - Mobile Bottom Sheet */}
+                  {!isResearching && content && (
+                    <div className="block md:hidden">
+                      <AnimatePresence>
+                        {isSourcesPanelOpen && (
+                          <>
+                            {/* Backdrop */}
+                            <motion.div
+                              className="fixed inset-0 bg-black/50 z-40"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              onClick={() => setIsSourcesPanelOpen(false)}
+                            />
+                            
+                            {/* Bottom Sheet */}
+                            <motion.div 
+                              className="fixed inset-x-0 bottom-0 bg-zinc-900 rounded-t-xl border-t border-white/10 shadow-2xl flex flex-col z-50"
+                              initial={{ y: "100%" }}
+                              animate={{ y: 0 }}
+                              exit={{ y: "100%" }}
+                              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                              style={{ maxHeight: "75vh" }}
+                            >
+                              {/* Handle */}
+                              <div className="flex justify-center p-2">
+                                <div className="w-12 h-1 rounded-full bg-white/20" />
+                              </div>
+                              
+                              <div className="flex items-center justify-between p-4 border-b border-white/10">
+                                <div className="flex items-center space-x-2">
+                                  <h2 className="text-lg font-medium text-white">Sources</h2>
+                                  <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-xs text-gray-400">{sources.length}</span>
+                                </div>
+                                <button
+                                  onClick={() => setIsSourcesPanelOpen(false)}
+                                  className="p-2 rounded-lg hover:bg-zinc-800/50"
+                                >
+                                  <span className="text-sm text-gray-400">Close</span>
+                                </button>
+                              </div>
+                              
+                              <div className="flex-1 overflow-hidden">
+                                <div className="h-full overflow-y-auto hide-scrollbar">
+                                  <div className="p-4 space-y-3">
+                                    <AnimatePresence mode="sync">
+                                      {sources.map((source, i) => (
+                                        <motion.div
+                                          key={`${source.id}-${i}`}
+                                          initial={{ opacity: 0, y: 10 }}
+                                          animate={{ opacity: 1, y: 0 }}
+                                          transition={{ 
+                                            duration: 0.3,
+                                            delay: i * 0.1
+                                          }}
+                                          exit={{ 
+                                            opacity: 0,
+                                            y: -10,
+                                            transition: {
+                                              duration: 0.2,
+                                              delay: (sources.length - 1 - i) * 0.05
+                                            }
+                                          }}
+                                          className="group"
+                                        >
+                                          <a 
+                                            href={source.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block p-3 rounded-lg hover:bg-zinc-800/50 transition-colors border border-white/5 hover:border-white/10"
+                                          >
+                                            <div className="flex items-start space-x-3">
+                                              <div className="flex-shrink-0 w-4 h-4 mt-0.5">
+                                                {source.favicon ? (
+                                                  <img 
+                                                    src={source.favicon} 
+                                                    alt="" 
+                                                    className="w-4 h-4 rounded-sm"
+                                                    onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                                                      const target = e.target as HTMLImageElement;
+                                                      target.src = `https://www.google.com/s2/favicons?domain=${getHostname(source.url)}`;
+                                                    }}
+                                                  />
+                                                ) : (
+                                                  <img 
+                                                    src={`https://www.google.com/s2/favicons?domain=${getHostname(source.url)}`}
+                                                    alt=""
+                                                    className="w-4 h-4 rounded-sm"
+                                                  />
+                                                )}
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                <div className="flex items-center space-x-2">
+                                                  <span className="text-sm font-medium text-gray-400 group-hover:text-white">
+                                                    [{source.id}]
+                                                  </span>
+                                                  <h3 className="text-sm font-medium text-gray-200 group-hover:text-white truncate">
+                                                    {source.title}
+                                                  </h3>
+                                                </div>
+                                                {source.snippet && (
+                                                  <p className="mt-1 text-sm text-gray-400 line-clamp-2">
+                                                    {source.snippet}
+                                                  </p>
+                                                )}
+                                                <div className="mt-2 flex items-center space-x-2">
+                                                  <div className="text-xs text-gray-500 flex items-center">
+                                                    <IconWrapper icon={ExternalLink} className="w-3 h-3 mr-1" />
+                                                    {getHostname(source.url)}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </a>
+                                        </motion.div>
+                                      ))}
+                                    </AnimatePresence>
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          </>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Mobile Sources Toggle Button - Fixed at bottom */}
+                      {!isSourcesPanelOpen && (
+                        <motion.button
+                          className="fixed bottom-6 right-6 flex items-center space-x-2 px-4 py-3 rounded-full bg-zinc-900/90 border border-white/10 shadow-lg z-40"
+                          onClick={() => setIsSourcesPanelOpen(true)}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 20 }}
+                        >
+                          <span className="text-sm text-gray-200">View Sources</span>
+                          <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-xs text-gray-400">{sources.length}</span>
+                        </motion.button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -665,19 +821,19 @@ export default function Home() {
           <div className="flex flex-col items-center space-y-4">
             <div className="flex justify-center space-x-8">
               <a href="#" className="text-gray-400 hover:text-white transition-all duration-300 transform hover:-translate-y-0.5">
-                <Twitter className="w-5 h-5" />
+                <IconWrapper icon={Twitter} className="w-5 h-5" />
               </a>
               <a href="#" className="text-gray-400 hover:text-white transition-all duration-300 transform hover:-translate-y-0.5">
-                <Youtube className="w-5 h-5" />
+                <IconWrapper icon={Youtube} className="w-5 h-5" />
               </a>
               <a href="#" className="text-gray-400 hover:text-white transition-all duration-300 transform hover:-translate-y-0.5">
-                <Instagram className="w-5 h-5" />
+                <IconWrapper icon={Instagram} className="w-5 h-5" />
               </a>
               <a href="#" className="text-gray-400 hover:text-white transition-all duration-300 transform hover:-translate-y-0.5">
-                <Linkedin className="w-5 h-5" />
+                <IconWrapper icon={Linkedin} className="w-5 h-5" />
               </a>
               <a href="#" className="text-gray-400 hover:text-white transition-all duration-300 transform hover:-translate-y-0.5">
-                <Facebook className="w-5 h-5" />
+                <IconWrapper icon={Facebook} className="w-5 h-5" />
               </a>
             </div>
             <div className="text-gray-500 hover:text-gray-400 transition-colors duration-300">© Noboox 2025</div>
