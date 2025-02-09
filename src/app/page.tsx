@@ -332,7 +332,7 @@ export default function Home() {
       
       {/* Logo - only show on initial page */}
       {!hasStarted && (
-        <div className="w-full flex justify-center pt-4">
+        <div className="logo-container">
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -343,7 +343,7 @@ export default function Home() {
               alt="Noobox Logo" 
               width={168}
               height={168}
-              className="w-[168px] h-[168px] drop-shadow-2xl"
+              className="logo"
               priority
             />
           </motion.div>
@@ -373,7 +373,7 @@ export default function Home() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="What do you want to know?"
-                    className="w-full px-8 py-5 bg-zinc-900/90 backdrop-blur-sm rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/20 shadow-xl relative transition-all duration-300"
+                    className="search-input"
                     disabled={isResearching}
                   />
                   <button
@@ -405,7 +405,7 @@ export default function Home() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.3, delay: index * 0.1 }}
                       onClick={() => setQuery(trendingQuery)}
-                      className="px-5 py-3 bg-zinc-900/50 hover:bg-zinc-800 rounded-xl text-sm text-gray-300 hover:text-white transition-all duration-300 border border-white/5 hover:border-white/20 backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-left"
+                      className="trending-card"
                     >
                       {trendingQuery}
                     </motion.button>

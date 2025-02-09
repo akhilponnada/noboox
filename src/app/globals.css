@@ -19,7 +19,7 @@
 }
 
 :root {
-  --background: #0f1117;
+  --background: #000000;
   --foreground: #ffffff;
   --primary: #3b82f6;
   --primary-foreground: #ffffff;
@@ -34,17 +34,27 @@
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    @apply bg-black text-white;
+    font-family: var(--font-sans);
   }
-}
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  .trending-card {
+    @apply px-5 py-3 bg-zinc-900/50 hover:bg-zinc-800 rounded-xl text-sm text-gray-300 hover:text-white transition-all duration-300 border border-white/5 hover:border-white/20 backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-left;
+  }
+
+  .search-input {
+    @apply w-full px-8 py-5 bg-zinc-900/90 backdrop-blur-sm rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/20 shadow-xl relative transition-all duration-300;
+  }
+
+  .logo-container {
+    @apply w-full flex justify-center pt-4;
+  }
+
+  .logo {
+    @apply w-[168px] h-[168px] drop-shadow-2xl;
+  }
 }
 
 .prose {
