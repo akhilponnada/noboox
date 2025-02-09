@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, Check, Pencil, ExternalLink } from 'lucide-react'
+import { ArrowRight, Check, Pencil, ExternalLink, Twitter, Youtube, Instagram, Linkedin, Facebook, TrendingUp } from 'lucide-react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
 
@@ -84,6 +84,36 @@ export default function Home() {
     explanation: string;
   } | null>(null)
   const [isConfirmingResearch, setIsConfirmingResearch] = useState(false)
+
+  const trendingQueries = [
+    "What are the long-term psychological effects of social media usage on adolescent development and mental well-being?",
+    "How do emerging quantum computing technologies impact current cryptographic security systems and future cybersecurity frameworks?",
+    "What are the environmental and socioeconomic implications of transitioning to renewable energy sources in developing nations?",
+    "How does artificial intelligence influence decision-making processes in modern healthcare diagnostics and treatment planning?",
+    "What are the neurobiological mechanisms underlying memory formation and their implications for treating neurodegenerative diseases?",
+    "How do microplastics in oceans affect marine ecosystems and what are the potential impacts on human health?",
+    "What role does epigenetics play in the inheritance of trauma across generations and its impact on mental health?",
+    "How can sustainable urban planning mitigate the effects of climate change in metropolitan areas?",
+    "What are the implications of space debris on future space exploration and satellite communications?",
+    "How does chronic stress affect immune system function and overall physical health outcomes?",
+    "What are the sociological impacts of remote work on organizational culture and employee well-being?",
+    "How do different teaching methodologies affect cognitive development and learning outcomes in early childhood education?",
+    "What are the potential applications of CRISPR gene editing in treating genetic disorders?",
+    "How does blockchain technology influence financial inclusion and economic development in underserved communities?",
+    "What are the psychological and social implications of virtual reality adoption in educational settings?",
+    "How do dietary patterns influence gut microbiome composition and its effect on mental health?",
+    "What are the long-term effects of air pollution on cardiovascular health in urban populations?",
+    "How does artificial intelligence bias affect decision-making in criminal justice systems?",
+    "What role do sleep patterns play in cognitive performance and memory consolidation?",
+    "How do cultural differences impact the effectiveness of global public health interventions?"
+  ]
+
+  const [randomTrendingQueries] = useState(() => {
+    // Get 4 random queries from the list
+    return [...trendingQueries]
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 4)
+  })
 
   // Handle client-side mounting
   useEffect(() => {
@@ -296,62 +326,106 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col bg-black relative">
-      {/* Logo */}
-      <div className={`absolute ${!hasStarted ? 'top-12 left-1/2 -translate-x-1/2' : 'top-0 left-6'} z-10`}>
-        <Image 
-          src="/images/logo.svg" 
-          alt="Noobox Logo" 
-          width={129} 
-          height={129}
-          className="w-[129px] h-[129px]"
-          priority
-        />
-      </div>
+    <main className="min-h-screen flex flex-col bg-black relative overflow-hidden">
+      {/* Ambient background effect */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_0%,transparent_100%)] pointer-events-none" />
+      
+      {/* Logo - only show on initial page */}
+      {!hasStarted && (
+        <div className="w-full flex justify-center pt-4">
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <Image 
+              src="/images/logo.svg" 
+              alt="Noobox Logo" 
+              width={168}
+              height={168}
+              className="w-[168px] h-[168px] drop-shadow-2xl"
+              priority
+            />
+          </motion.div>
+        </div>
+      )}
 
       {!hasStarted ? (
         /* Initial Search View */
-        <div className="flex-1 flex items-center justify-center w-full">
-          <div className="w-full max-w-2xl mx-auto px-4 text-center">
-            <div className="space-y-10">
-              <h1 className="font-['Varela_Round'] text-[42px] font-normal text-white tracking-tight leading-tight">
-                Research with Confidence
+        <div className="flex-1 w-full">
+          <div className="w-full max-w-2xl mx-auto px-4 text-center relative mt-20">
+            <motion.div 
+              className="space-y-12"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <h1 className="font-['Varela_Round'] text-[50px] font-normal text-white tracking-tight leading-tight mt-20">
+                Research Like a Pro
               </h1>
               
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Input Box */}
-                <div className="relative">
+                <div className="relative group">
+                  <div className="absolute -inset-1 bg-white/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300 group-hover:opacity-100 opacity-0" />
                   <input
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="What do you want to know?"
-                    className="w-full px-6 py-4 bg-zinc-900 rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-white/20"
+                    className="w-full px-8 py-5 bg-zinc-900/90 backdrop-blur-sm rounded-full text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/20 shadow-xl relative transition-all duration-300"
                     disabled={isResearching}
                   />
                   <button
                     type="submit"
                     disabled={isResearching || !query.trim()}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 bg-zinc-800 text-white rounded-full hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-zinc-800 text-white rounded-full hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg"
                   >
                     <ArrowRight className="w-5 h-5" />
                   </button>
                 </div>
               </form>
-            </div>
+
+              {/* Trending Researches */}
+              <motion.div 
+                className="mt-12 relative"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+              >
+                <div className="flex items-center justify-center space-x-2 text-gray-400 mb-6">
+                  <TrendingUp className="w-4 h-4" />
+                  <span className="text-sm font-medium">Trending Researches</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto px-4">
+                  {randomTrendingQueries.map((trendingQuery, index) => (
+                    <motion.button
+                      key={index}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      onClick={() => setQuery(trendingQuery)}
+                      className="px-5 py-3 bg-zinc-900/50 hover:bg-zinc-800 rounded-xl text-sm text-gray-300 hover:text-white transition-all duration-300 border border-white/5 hover:border-white/20 backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-left"
+                    >
+                      {trendingQuery}
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+            </motion.div>
           </div>
         </div>
       ) : (
         /* Research Results View */
-        <div className="flex-1 w-full pt-6 mb-16">
-          <div className="flex h-screen">
+        <div className="flex-1 w-full pt-6 overflow-hidden">
+          <div className="flex h-screen relative">
             <motion.div 
-              className="flex-1 overflow-y-auto p-6"
+              className="flex-1 overflow-y-auto hide-scrollbar p-6 mr-[380px]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="max-w-3xl mx-auto">
+              <div className="w-full pl-[22%] pr-[5%]">
                 {currentQuery && (
                   <motion.div 
                     className="mb-8"
@@ -458,72 +532,129 @@ export default function Home() {
             </motion.div>
 
             <motion.div 
-              className="w-[400px] border-l border-white/10 h-screen overflow-y-auto fixed right-0 top-0 pt-6"
+              className="fixed right-6 top-8 bottom-8 bg-zinc-900 backdrop-blur-sm rounded-xl border border-white/10 shadow-2xl flex flex-col w-[380px]"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="p-6">
-                <h2 className="text-lg font-medium text-white mb-4">Sources</h2>
-                <div className="space-y-4 pb-16">
-                  <AnimatePresence mode="sync">
-                    {sources.map((source, i) => (
-                      <motion.div
-                        key={`${source.id}-${i}`}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ 
-                          duration: 0.3,
-                          delay: i * 0.1
-                        }}
-                        exit={{ 
-                          opacity: 0,
-                          y: -10,
-                          transition: {
-                            duration: 0.2,
-                            delay: (sources.length - 1 - i) * 0.05
-                          }
-                        }}
-                        className="group"
-                      >
-                        <a 
-                          href={source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block p-3 -mx-3 rounded-lg hover:bg-zinc-900 transition-colors"
+              <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-lg font-medium text-white">Sources</h2>
+                  <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-xs text-gray-400">{sources.length}</span>
+                </div>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <div className="h-full overflow-y-auto hide-scrollbar">
+                  <div className="p-4 space-y-3">
+                    <AnimatePresence mode="sync">
+                      {sources.map((source, i) => (
+                        <motion.div
+                          key={`${source.id}-${i}`}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ 
+                            duration: 0.3,
+                            delay: i * 0.1
+                          }}
+                          exit={{ 
+                            opacity: 0,
+                            y: -10,
+                            transition: {
+                              duration: 0.2,
+                              delay: (sources.length - 1 - i) * 0.05
+                            }
+                          }}
+                          className="group"
                         >
-                          <div className="flex items-start space-x-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm font-medium text-gray-400 group-hover:text-white">
-                                  [{source.id}]
-                                </span>
-                                <h3 className="text-sm font-medium text-gray-200 group-hover:text-white truncate">
-                                  {source.title}
-                                </h3>
+                          <a 
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block p-3 rounded-lg hover:bg-zinc-800/50 transition-colors border border-white/5 hover:border-white/10"
+                          >
+                            <div className="flex items-start space-x-3">
+                              <div className="flex-shrink-0 w-4 h-4 mt-0.5">
+                                {source.favicon ? (
+                                  <img 
+                                    src={source.favicon} 
+                                    alt="" 
+                                    className="w-4 h-4 rounded-sm"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src = `https://www.google.com/s2/favicons?domain=${getHostname(source.url)}`;
+                                    }}
+                                  />
+                                ) : (
+                                  <img 
+                                    src={`https://www.google.com/s2/favicons?domain=${getHostname(source.url)}`}
+                                    alt=""
+                                    className="w-4 h-4 rounded-sm"
+                                  />
+                                )}
                               </div>
-                              {source.snippet && (
-                                <p className="mt-1 text-sm text-gray-400 line-clamp-2">
-                                  {source.snippet}
-                                </p>
-                              )}
-                              <div className="mt-2 flex items-center space-x-2">
-                                <div className="text-xs text-gray-500 flex items-center">
-                                  <ExternalLink className="w-3 h-3 mr-1" />
-                                  {getHostname(source.url)}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm font-medium text-gray-400 group-hover:text-white">
+                                    [{source.id}]
+                                  </span>
+                                  <h3 className="text-sm font-medium text-gray-200 group-hover:text-white truncate">
+                                    {source.title}
+                                  </h3>
+                                </div>
+                                {source.snippet && (
+                                  <p className="mt-1 text-sm text-gray-400 line-clamp-2">
+                                    {source.snippet}
+                                  </p>
+                                )}
+                                <div className="mt-2 flex items-center space-x-2">
+                                  <div className="text-xs text-gray-500 flex items-center">
+                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                    {getHostname(source.url)}
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        </a>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
+                          </a>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
             </motion.div>
           </div>
         </div>
+      )}
+
+      {/* Footer - only show on initial page */}
+      {!hasStarted && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="fixed bottom-0 left-0 right-0 text-center py-4 text-zinc-500 text-xs bg-black/80 backdrop-blur-sm border-t border-white/5 z-50"
+        >
+          <div className="flex flex-col items-center space-y-4">
+            <div className="flex justify-center space-x-8">
+              <a href="#" className="text-gray-400 hover:text-white transition-all duration-300 transform hover:-translate-y-0.5">
+                <Twitter className="w-5 h-5" />
+              </a>
+              <a href="#" className="text-gray-400 hover:text-white transition-all duration-300 transform hover:-translate-y-0.5">
+                <Youtube className="w-5 h-5" />
+              </a>
+              <a href="#" className="text-gray-400 hover:text-white transition-all duration-300 transform hover:-translate-y-0.5">
+                <Instagram className="w-5 h-5" />
+              </a>
+              <a href="#" className="text-gray-400 hover:text-white transition-all duration-300 transform hover:-translate-y-0.5">
+                <Linkedin className="w-5 h-5" />
+              </a>
+              <a href="#" className="text-gray-400 hover:text-white transition-all duration-300 transform hover:-translate-y-0.5">
+                <Facebook className="w-5 h-5" />
+              </a>
+            </div>
+            <div className="text-gray-500 hover:text-gray-400 transition-colors duration-300">© Noboox 2025</div>
+          </div>
+        </motion.div>
       )}
 
       {isConfirmingResearch && researchPlan && (
@@ -576,11 +707,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
-      {/* Fixed Footer */}
-      <div className="fixed bottom-0 left-0 right-0 text-center py-3 text-zinc-500 text-xs bg-black/80 backdrop-blur-sm border-t border-white/5 z-50">
-        © Noboox 2025
-      </div>
     </main>
   )
 }

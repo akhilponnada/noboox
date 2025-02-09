@@ -47,7 +47,7 @@ export default function ResearchSteps({ steps }: ResearchStepsProps) {
             }}
             className={`
               flex items-center space-x-4 p-3 rounded-lg
-              ${step.status === 'loading' ? 'bg-purple-500/10 border border-purple-500/20' : 
+              ${step.status === 'loading' ? 'bg-zinc-800/50 border border-zinc-700/50' : 
                 step.status === 'complete' ? 'bg-green-500/10 border border-green-500/20' :
                 step.status === 'error' ? 'bg-red-500/10 border border-red-500/20' :
                 'bg-zinc-800/50 border border-zinc-700/50'}
@@ -59,7 +59,7 @@ export default function ResearchSteps({ steps }: ResearchStepsProps) {
             </div>
             <div className="flex-shrink-0">
               {step.status === 'loading' && (
-                <Loader className="w-4 h-4 text-purple-500 animate-spin" />
+                <Loader className="w-4 h-4 text-white animate-spin" />
               )}
               {step.status === 'complete' && (
                 <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
