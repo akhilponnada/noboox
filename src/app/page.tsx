@@ -358,15 +358,15 @@ export default function Home() {
       <AnimatePresence mode="wait">
         {!hasStarted ? (
           /* Initial Search View */
-          <div className="flex-1 w-full">
-            <div className="w-full max-w-2xl mx-auto px-4 text-center relative mt-20">
+          <div className="flex-1 w-full pb-32">
+            <div className="w-full max-w-2xl mx-auto px-4 text-center relative mt-12 md:mt-20">
               <motion.div 
-                className="space-y-12"
+                className="space-y-8 md:space-y-12"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
               >
-                <h1 className="text-[50px] font-normal text-white tracking-tight leading-tight mt-20">
+                <h1 className="text-[40px] md:text-[50px] font-normal text-white tracking-tight leading-tight mt-12 md:mt-20">
                   Research Like a Pro
                 </h1>
                 
@@ -429,35 +429,35 @@ export default function Home() {
             className="w-full"
           >
             {/* Header */}
-            <header className="fixed top-0 left-0 right-0 h-16 bg-black border-b border-white/10 z-10 flex items-center justify-between px-4 md:justify-center">
-              <div className="w-32 relative">
+            <header className="fixed top-0 left-0 right-0 h-14 md:h-16 bg-black border-b border-white/10 z-10 flex items-center px-3 md:px-4 md:justify-center">
+              <div className="w-24 md:w-32 relative">
                 <Image
                   src="/images/logo.svg"
                   alt="Noobox Logo"
                   width={128}
                   height={32}
                   priority
-                  className="object-contain"
+                  className="object-contain scale-75 md:scale-100"
                 />
               </div>
               {/* Mobile Sources Toggle */}
               {!isResearching && content && (
                 <button
                   onClick={() => setIsSourcesPanelOpen(!isSourcesPanelOpen)}
-                  className="md:hidden flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-zinc-900/50 border border-white/10"
+                  className="md:hidden flex items-center space-x-2 px-2.5 py-1.5 ml-auto rounded-lg bg-zinc-900/50 border border-white/10 text-sm"
                 >
                   <span className="text-sm text-gray-400">Sources</span>
-                  <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-xs text-gray-400">{sources.length}</span>
+                  <span className="px-1.5 py-0.5 rounded-full bg-zinc-800 text-xs text-gray-400">{sources.length}</span>
                 </button>
               )}
             </header>
             
             {/* Add padding-top to the content to account for fixed header */}
-            <div className="pt-16">
+            <div className="pt-14 md:pt-16">
               <div className="flex-1 w-full">
-                <div className="flex h-screen relative">
+                <div className="flex h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] relative">
                   <motion.div 
-                    className="flex-1 overflow-y-auto hide-scrollbar p-6 md:mr-[380px]"
+                    className="flex-1 overflow-y-auto hide-scrollbar p-3 md:p-6 md:mr-[380px]"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3 }}
@@ -465,21 +465,21 @@ export default function Home() {
                     <div className="w-full md:pl-[22%] md:pr-[5%]">
                       {currentQuery && (
                         <motion.div 
-                          className="mb-8"
+                          className="mb-8 mt-2"
                           initial={{ opacity: 0, y: -20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.5 }}
                         >
-                          <div className="flex items-center space-x-3 text-sm text-gray-400">
+                          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-400">
                             <span>Researching</span>
-                            <div className="px-3 py-1.5 rounded-lg bg-zinc-900 text-white">
-                              {currentQuery}
+                            <div className="px-3 py-1.5 rounded-lg bg-zinc-900 text-white max-w-full overflow-hidden">
+                              <span className="block truncate">{currentQuery}</span>
                             </div>
                           </div>
                         </motion.div>
                       )}
 
-                      <div className="mt-8">
+                      <div className="mt-4 md:mt-8">
                         <AnimatePresence mode="sync">
                           {isResearching && (
                             <motion.div
@@ -671,7 +671,7 @@ export default function Home() {
                           <>
                             {/* Backdrop */}
                             <motion.div
-                              className="fixed inset-0 bg-black/50 z-40"
+                              className="fixed inset-0 bg-black/60 z-40"
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
@@ -685,21 +685,21 @@ export default function Home() {
                               animate={{ y: 0 }}
                               exit={{ y: "100%" }}
                               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                              style={{ maxHeight: "75vh" }}
+                              style={{ maxHeight: "85vh" }}
                             >
                               {/* Handle */}
                               <div className="flex justify-center p-2">
                                 <div className="w-12 h-1 rounded-full bg-white/20" />
                               </div>
                               
-                              <div className="flex items-center justify-between p-4 border-b border-white/10">
+                              <div className="flex items-center justify-between px-3 py-3 border-b border-white/10">
                                 <div className="flex items-center space-x-2">
-                                  <h2 className="text-lg font-medium text-white">Sources</h2>
-                                  <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-xs text-gray-400">{sources.length}</span>
+                                  <h2 className="text-base font-medium text-white">Sources</h2>
+                                  <span className="px-1.5 py-0.5 rounded-full bg-zinc-800 text-xs text-gray-400">{sources.length}</span>
                                 </div>
                                 <button
                                   onClick={() => setIsSourcesPanelOpen(false)}
-                                  className="p-2 rounded-lg hover:bg-zinc-800/50"
+                                  className="p-1.5 rounded-lg hover:bg-zinc-800/50"
                                 >
                                   <span className="text-sm text-gray-400">Close</span>
                                 </button>
@@ -791,14 +791,14 @@ export default function Home() {
                       {/* Mobile Sources Toggle Button - Fixed at bottom */}
                       {!isSourcesPanelOpen && (
                         <motion.button
-                          className="fixed bottom-6 right-6 flex items-center space-x-2 px-4 py-3 rounded-full bg-zinc-900/90 border border-white/10 shadow-lg z-40"
+                          className="fixed bottom-4 right-4 flex items-center space-x-2 px-3 py-2 rounded-full bg-zinc-900/90 border border-white/10 shadow-lg z-40"
                           onClick={() => setIsSourcesPanelOpen(true)}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 20 }}
                         >
                           <span className="text-sm text-gray-200">View Sources</span>
-                          <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-xs text-gray-400">{sources.length}</span>
+                          <span className="px-1.5 py-0.5 rounded-full bg-zinc-800 text-xs text-gray-400">{sources.length}</span>
                         </motion.button>
                       )}
                     </div>
@@ -816,10 +816,10 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="fixed bottom-0 left-0 right-0 text-center py-4 text-zinc-500 text-xs bg-black/80 backdrop-blur-sm border-t border-white/5 z-50"
+          className="fixed bottom-0 left-0 right-0 text-center py-4 text-zinc-500 text-xs bg-black/80 backdrop-blur-sm border-t border-white/5 z-40"
         >
-          <div className="flex flex-col items-center space-y-4">
-            <div className="flex justify-center space-x-8">
+          <div className="flex flex-col items-center space-y-2 md:space-y-4">
+            <div className="flex justify-center space-x-4 md:space-x-8">
               <a href="#" className="text-gray-400 hover:text-white transition-all duration-300 transform hover:-translate-y-0.5">
                 <IconWrapper icon={Twitter} className="w-5 h-5" />
               </a>
