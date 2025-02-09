@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { GeistSans, GeistMono } from 'geist/font';
+import { Inter } from 'next/font/google';
 import "./globals.css";
 
-const geistSans = GeistSans;
-const geistMono = GeistMono;
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: "Noboox",
@@ -23,9 +25,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/images/favicon.png" />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${inter.className} antialiased`}>
         {children}
       </body>
     </html>

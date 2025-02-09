@@ -360,7 +360,7 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <h1 className="font-['Varela_Round'] text-[50px] font-normal text-white tracking-tight leading-tight mt-20">
+              <h1 className="text-[50px] font-normal text-white tracking-tight leading-tight mt-20">
                 Research Like a Pro
               </h1>
               

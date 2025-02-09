@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from 'tailwindcss/plugin';
 
 export default {
   content: [
@@ -13,12 +14,21 @@ export default {
         foreground: "var(--foreground)",
       },
       fontFamily: {
-        sans: ['var(--font-sans)', 'system-ui'],
-        serif: ['var(--font-serif)', 'Georgia'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
       },
     },
   },
   plugins: [
-    require('tailwind-scrollbar-hide')
+    plugin(function({ addUtilities }) {
+      addUtilities({
+        '.hide-scrollbar': {
+          '-ms-overflow-style': 'none',
+          'scrollbar-width': 'none',
+          '&::-webkit-scrollbar': {
+            display: 'none'
+          },
+        }
+      })
+    })
   ],
 } satisfies Config;

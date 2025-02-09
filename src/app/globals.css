@@ -29,8 +29,11 @@
 
 @layer base {
   body {
-    @apply bg-black text-white;
-    font-family: var(--font-sans);
+    @apply bg-black text-white font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans;
   }
 
   .trending-card {
