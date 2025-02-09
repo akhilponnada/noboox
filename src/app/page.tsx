@@ -350,281 +350,309 @@ export default function Home() {
         </div>
       )}
 
-      {!hasStarted ? (
-        /* Initial Search View */
-        <div className="flex-1 w-full">
-          <div className="w-full max-w-2xl mx-auto px-4 text-center relative mt-20">
-            <motion.div 
-              className="space-y-12"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <h1 className="text-[50px] font-normal text-white tracking-tight leading-tight mt-20">
-                Research Like a Pro
-              </h1>
-              
-              <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Input Box */}
-                <div className="relative group">
-                  <div className="absolute -inset-1 bg-white/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300 group-hover:opacity-100 opacity-0" />
-                  <input
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="What do you want to know?"
-                    className="search-input"
-                    disabled={isResearching}
-                  />
-                  <button
-                    type="submit"
-                    disabled={isResearching || !query.trim()}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-zinc-800 text-white rounded-full hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg"
-                  >
-                    <ArrowRight className="w-5 h-5" />
-                  </button>
-                </div>
-              </form>
-
-              {/* Trending Researches */}
+      <AnimatePresence mode="wait">
+        {!hasStarted ? (
+          /* Initial Search View */
+          <div className="flex-1 w-full">
+            <div className="w-full max-w-2xl mx-auto px-4 text-center relative mt-20">
               <motion.div 
-                className="mt-12 relative"
+                className="space-y-12"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
               >
-                <div className="flex items-center justify-center space-x-2 text-gray-400 mb-6">
-                  <TrendingUp className="w-4 h-4" />
-                  <span className="text-sm font-medium">Trending Researches</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto px-4">
-                  {randomTrendingQueries.map((trendingQuery, index) => (
-                    <motion.button
-                      key={index}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      onClick={() => setQuery(trendingQuery)}
-                      className="trending-card"
+                <h1 className="text-[50px] font-normal text-white tracking-tight leading-tight mt-20">
+                  Research Like a Pro
+                </h1>
+                
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  {/* Input Box */}
+                  <div className="relative group">
+                    <div className="absolute -inset-1 bg-white/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300 group-hover:opacity-100 opacity-0" />
+                    <input
+                      type="text"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="What do you want to know?"
+                      className="search-input"
+                      disabled={isResearching}
+                    />
+                    <button
+                      type="submit"
+                      disabled={isResearching || !query.trim()}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-zinc-800 text-white rounded-full hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg"
                     >
-                      {trendingQuery}
-                    </motion.button>
-                  ))}
-                </div>
+                      <ArrowRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                </form>
+
+                {/* Trending Researches */}
+                <motion.div 
+                  className="mt-12 relative"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                >
+                  <div className="flex items-center justify-center space-x-2 text-gray-400 mb-6">
+                    <TrendingUp className="w-4 h-4" />
+                    <span className="text-sm font-medium">Trending Researches</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto px-4">
+                    {randomTrendingQueries.map((trendingQuery, index) => (
+                      <motion.button
+                        key={index}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        onClick={() => setQuery(trendingQuery)}
+                        className="trending-card"
+                      >
+                        {trendingQuery}
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
               </motion.div>
-            </motion.div>
+            </div>
           </div>
-        </div>
-      ) : (
-        /* Research Results View */
-        <div className="flex-1 w-full pt-6 overflow-hidden">
-          <div className="flex h-screen relative">
-            <motion.div 
-              className="flex-1 overflow-y-auto hide-scrollbar p-6 mr-[380px]"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="w-full pl-[22%] pr-[5%]">
-                {currentQuery && (
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="w-full"
+          >
+            {/* Header */}
+            <header className="fixed top-0 left-0 right-0 h-16 bg-black border-b border-white/10 z-10 flex items-center justify-center">
+              <div className="w-32 relative">
+                <Image
+                  src="/images/logo.svg"
+                  alt="Noobox Logo"
+                  width={128}
+                  height={32}
+                  priority
+                  className="object-contain"
+                />
+              </div>
+            </header>
+            
+            {/* Add padding-top to the content to account for fixed header */}
+            <div className="pt-16">
+              <div className="flex-1 w-full">
+                <div className="flex h-screen relative">
                   <motion.div 
-                    className="mb-8"
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
+                    className="flex-1 overflow-y-auto hide-scrollbar p-6 mr-[380px]"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
                   >
-                    <div className="flex items-center space-x-3 text-sm text-gray-400">
-                      <span>Researching</span>
-                      <div className="px-3 py-1.5 rounded-lg bg-zinc-900 text-white">
-                        {currentQuery}
+                    <div className="w-full pl-[22%] pr-[5%]">
+                      {currentQuery && (
+                        <motion.div 
+                          className="mb-8"
+                          initial={{ opacity: 0, y: -20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5 }}
+                        >
+                          <div className="flex items-center space-x-3 text-sm text-gray-400">
+                            <span>Researching</span>
+                            <div className="px-3 py-1.5 rounded-lg bg-zinc-900 text-white">
+                              {currentQuery}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      <div className="mt-8">
+                        <AnimatePresence mode="sync">
+                          {isResearching && (
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              <ResearchSteps 
+                                steps={researchSteps}
+                              />
+                            </motion.div>
+                          )}
+                          {!isResearching && content && (
+                            <motion.div
+                              key="content"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.5 }}
+                              className="relative"
+                            >
+                              {metadata && (
+                                <div className="mb-6 flex items-center justify-between">
+                                  <div className="flex items-center space-x-4 text-sm">
+                                    <div className="px-3 py-1.5 rounded-lg bg-zinc-900">
+                                      <span className="text-gray-400">Sources: </span>
+                                      <span className="text-white">{metadata?.sourceCount}</span>
+                                    </div>
+                                    <div className="px-3 py-1.5 rounded-lg bg-zinc-900">
+                                      <span className="text-gray-400">Citations: </span>
+                                      <span className="text-white">{metadata?.citationsUsed}</span>
+                                      <span className="text-gray-500 text-xs ml-1">({metadata?.sourceUsagePercent}%)</span>
+                                    </div>
+                                    <div className="px-3 py-1.5 rounded-lg bg-zinc-900">
+                                      <span className="text-gray-400">Words: </span>
+                                      <span className="text-white word-count">{wordCount}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-3">
+                                    <AnimatePresence mode="sync">
+                                      {showSaveNotification && (
+                                        <motion.div
+                                          initial={{ opacity: 0, x: 20 }}
+                                          animate={{ opacity: 1, x: 0 }}
+                                          exit={{ opacity: 0, x: 20 }}
+                                          className="px-3 py-1.5 rounded-lg bg-green-500/20 border border-green-500/30"
+                                        >
+                                          <span className="text-green-300 text-sm">Changes saved</span>
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+                                    {isEditing && (
+                                      <div className="px-3 py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/30">
+                                        <span className="text-purple-300 text-sm">Edit Mode</span>
+                                      </div>
+                                    )}
+                                    <button
+                                      onClick={handleEditToggle}
+                                      className={`p-2 rounded-lg transition-colors ${
+                                        isEditing 
+                                          ? 'bg-purple-500/20 hover:bg-purple-500/30' 
+                                          : 'hover:bg-zinc-800'
+                                      }`}
+                                      title={isEditing ? "Save changes" : "Edit"}
+                                    >
+                                      {isEditing ? (
+                                        <Check className="w-4 h-4 text-purple-500" />
+                                      ) : (
+                                        <Pencil className="w-4 h-4 text-zinc-400" />
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <Editor
+                                content={content}
+                                onChange={handleContentChange}
+                                editable={isEditing}
+                              />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
                   </motion.div>
-                )}
 
-                <div className="mt-8">
-                  <AnimatePresence mode="sync">
-                    {isResearching && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <ResearchSteps 
-                          steps={researchSteps}
-                        />
-                      </motion.div>
-                    )}
-                    {!isResearching && content && (
-                      <motion.div
-                        key="content"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="relative"
-                      >
-                        {metadata && (
-                          <div className="mb-6 flex items-center justify-between">
-                            <div className="flex items-center space-x-4 text-sm">
-                              <div className="px-3 py-1.5 rounded-lg bg-zinc-900">
-                                <span className="text-gray-400">Sources: </span>
-                                <span className="text-white">{metadata?.sourceCount}</span>
-                              </div>
-                              <div className="px-3 py-1.5 rounded-lg bg-zinc-900">
-                                <span className="text-gray-400">Citations: </span>
-                                <span className="text-white">{metadata?.citationsUsed}</span>
-                                <span className="text-gray-500 text-xs ml-1">({metadata?.sourceUsagePercent}%)</span>
-                              </div>
-                              <div className="px-3 py-1.5 rounded-lg bg-zinc-900">
-                                <span className="text-gray-400">Words: </span>
-                                <span className="text-white word-count">{wordCount}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                              <AnimatePresence mode="sync">
-                                {showSaveNotification && (
-                                  <motion.div
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    className="px-3 py-1.5 rounded-lg bg-green-500/20 border border-green-500/30"
+                  {/* Sources panel - only show when content exists and not researching */}
+                  {!isResearching && content && (
+                    <motion.div 
+                      className="fixed right-6 top-24 bottom-8 bg-zinc-900 backdrop-blur-sm rounded-xl border border-white/10 shadow-2xl flex flex-col w-[380px]"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="flex items-center justify-between p-4 border-b border-white/10">
+                        <div className="flex items-center space-x-2">
+                          <h2 className="text-lg font-medium text-white">Sources</h2>
+                          <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-xs text-gray-400">{sources.length}</span>
+                        </div>
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <div className="h-full overflow-y-auto hide-scrollbar">
+                          <div className="p-4 space-y-3">
+                            <AnimatePresence mode="sync">
+                              {sources.map((source, i) => (
+                                <motion.div
+                                  key={`${source.id}-${i}`}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ 
+                                    duration: 0.3,
+                                    delay: i * 0.1
+                                  }}
+                                  exit={{ 
+                                    opacity: 0,
+                                    y: -10,
+                                    transition: {
+                                      duration: 0.2,
+                                      delay: (sources.length - 1 - i) * 0.05
+                                    }
+                                  }}
+                                  className="group"
+                                >
+                                  <a 
+                                    href={source.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block p-3 rounded-lg hover:bg-zinc-800/50 transition-colors border border-white/5 hover:border-white/10"
                                   >
-                                    <span className="text-green-300 text-sm">Changes saved</span>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                              {isEditing && (
-                                <div className="px-3 py-1.5 rounded-lg bg-purple-500/20 border border-purple-500/30">
-                                  <span className="text-purple-300 text-sm">Edit Mode</span>
-                                </div>
-                              )}
-                              <button
-                                onClick={handleEditToggle}
-                                className={`p-2 rounded-lg transition-colors ${
-                                  isEditing 
-                                    ? 'bg-purple-500/20 hover:bg-purple-500/30' 
-                                    : 'hover:bg-zinc-800'
-                                }`}
-                                title={isEditing ? "Save changes" : "Edit"}
-                              >
-                                {isEditing ? (
-                                  <Check className="w-4 h-4 text-purple-500" />
-                                ) : (
-                                  <Pencil className="w-4 h-4 text-zinc-400" />
-                                )}
-                              </button>
-                            </div>
+                                    <div className="flex items-start space-x-3">
+                                      <div className="flex-shrink-0 w-4 h-4 mt-0.5">
+                                        {source.favicon ? (
+                                          <img 
+                                            src={source.favicon} 
+                                            alt="" 
+                                            className="w-4 h-4 rounded-sm"
+                                            onError={(e) => {
+                                              const target = e.target as HTMLImageElement;
+                                              target.src = `https://www.google.com/s2/favicons?domain=${getHostname(source.url)}`;
+                                            }}
+                                          />
+                                        ) : (
+                                          <img 
+                                            src={`https://www.google.com/s2/favicons?domain=${getHostname(source.url)}`}
+                                            alt=""
+                                            className="w-4 h-4 rounded-sm"
+                                          />
+                                        )}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center space-x-2">
+                                          <span className="text-sm font-medium text-gray-400 group-hover:text-white">
+                                            [{source.id}]
+                                          </span>
+                                          <h3 className="text-sm font-medium text-gray-200 group-hover:text-white truncate">
+                                            {source.title}
+                                          </h3>
+                                        </div>
+                                        {source.snippet && (
+                                          <p className="mt-1 text-sm text-gray-400 line-clamp-2">
+                                            {source.snippet}
+                                          </p>
+                                        )}
+                                        <div className="mt-2 flex items-center space-x-2">
+                                          <div className="text-xs text-gray-500 flex items-center">
+                                            <ExternalLink className="w-3 h-3 mr-1" />
+                                            {getHostname(source.url)}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </a>
+                                </motion.div>
+                              ))}
+                            </AnimatePresence>
                           </div>
-                        )}
-                        
-                        <Editor
-                          content={content}
-                          onChange={handleContentChange}
-                          editable={isEditing}
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
               </div>
-            </motion.div>
-
-            <motion.div 
-              className="fixed right-6 top-8 bottom-8 bg-zinc-900 backdrop-blur-sm rounded-xl border border-white/10 shadow-2xl flex flex-col w-[380px]"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex items-center justify-between p-4 border-b border-white/10">
-                <div className="flex items-center space-x-2">
-                  <h2 className="text-lg font-medium text-white">Sources</h2>
-                  <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-xs text-gray-400">{sources.length}</span>
-                </div>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <div className="h-full overflow-y-auto hide-scrollbar">
-                  <div className="p-4 space-y-3">
-                    <AnimatePresence mode="sync">
-                      {sources.map((source, i) => (
-                        <motion.div
-                          key={`${source.id}-${i}`}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ 
-                            duration: 0.3,
-                            delay: i * 0.1
-                          }}
-                          exit={{ 
-                            opacity: 0,
-                            y: -10,
-                            transition: {
-                              duration: 0.2,
-                              delay: (sources.length - 1 - i) * 0.05
-                            }
-                          }}
-                          className="group"
-                        >
-                          <a 
-                            href={source.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block p-3 rounded-lg hover:bg-zinc-800/50 transition-colors border border-white/5 hover:border-white/10"
-                          >
-                            <div className="flex items-start space-x-3">
-                              <div className="flex-shrink-0 w-4 h-4 mt-0.5">
-                                {source.favicon ? (
-                                  <img 
-                                    src={source.favicon} 
-                                    alt="" 
-                                    className="w-4 h-4 rounded-sm"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.src = `https://www.google.com/s2/favicons?domain=${getHostname(source.url)}`;
-                                    }}
-                                  />
-                                ) : (
-                                  <img 
-                                    src={`https://www.google.com/s2/favicons?domain=${getHostname(source.url)}`}
-                                    alt=""
-                                    className="w-4 h-4 rounded-sm"
-                                  />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-sm font-medium text-gray-400 group-hover:text-white">
-                                    [{source.id}]
-                                  </span>
-                                  <h3 className="text-sm font-medium text-gray-200 group-hover:text-white truncate">
-                                    {source.title}
-                                  </h3>
-                                </div>
-                                {source.snippet && (
-                                  <p className="mt-1 text-sm text-gray-400 line-clamp-2">
-                                    {source.snippet}
-                                  </p>
-                                )}
-                                <div className="mt-2 flex items-center space-x-2">
-                                  <div className="text-xs text-gray-500 flex items-center">
-                                    <ExternalLink className="w-3 h-3 mr-1" />
-                                    {getHostname(source.url)}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </a>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Footer - only show on initial page */}
       {!hasStarted && (
