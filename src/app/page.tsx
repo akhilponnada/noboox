@@ -32,10 +32,68 @@ const IconWrapper = ({ icon: Icon, className }: { icon: React.ComponentType<Luci
   return <Icon size={24} className={className} />;
 };
 
+const FaviconImage = ({ source }: { source: any }) => {
+  const [faviconUrl, setFaviconUrl] = useState<string | undefined>(undefined);
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Reset states when source changes
+    setIsLoading(true);
+    setHasError(false);
+
+    const loadFavicon = async () => {
+      try {
+        // Try the provided favicon first
+        if (source.favicon) {
+          setFaviconUrl(source.favicon);
+          return;
+        }
+
+        // If no favicon provided, try to generate one
+        const domain = getHostname(source.url);
+        if (domain !== 'Invalid URL' && domain !== 'No URL available') {
+          setFaviconUrl(`https://icons.duckduckgo.com/ip3/${domain}.ico`);
+        } else {
+          setHasError(true);
+        }
+      } catch {
+        setHasError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadFavicon();
+  }, [source.favicon, source.url]);
+
+  const handleFaviconError = () => {
+    if (!hasError) {
+      setHasError(true);
+      setFaviconUrl(undefined);
+    }
+  };
+
+  if (isLoading || !faviconUrl) {
+    return <div className="w-4 h-4 rounded-sm bg-zinc-700" />;
+  }
+
+  return (
+    <img 
+      src={faviconUrl} 
+      alt="" 
+      className="w-4 h-4 rounded-sm"
+      onError={handleFaviconError}
+      loading="lazy"
+    />
+  );
+};
+
 export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [content, setContent] = useState('')
   const [isResearching, setIsResearching] = useState(false)
+  const [isDeepResearch, setIsDeepResearch] = useState(false)
   const [sources, setSources] = useState<Array<{
     id: string;
     title: string;
@@ -164,7 +222,8 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: query }]
+          messages: [{ role: 'user', content: query }],
+          isDeepResearch: isDeepResearch
         })
       });
 
@@ -191,11 +250,6 @@ export default function Home() {
       if (data.content) {
         updateStepStatus('synthesize', 'complete')
         updateStepStatus('generate', 'loading')
-        
-        // Check if content seems truncated
-        if (data.content.length < 100 || !data.content.includes('</div>')) {
-          throw new Error('The generated content appears to be incomplete. Please try again.');
-        }
         
         setContent(data.content)
         setMetadata({
@@ -335,9 +389,9 @@ export default function Home() {
       {/* Ambient background effect */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_0%,transparent_100%)] pointer-events-none" />
       
-      {/* Logo - only show on initial page */}
+      {/* Header with Logo and Auth buttons */}
       {!hasStarted && (
-        <div className="logo-container">
+        <div className="absolute top-0 left-0 right-0 flex justify-between items-center px-4 py-4">
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -346,72 +400,94 @@ export default function Home() {
             <Image 
               src="/images/logo.svg" 
               alt="Noobox Logo" 
-              width={168}
-              height={168}
-              className="logo"
+              width={128}
+              height={32}
+              className="object-contain w-auto h-[32px]"
               priority
             />
           </motion.div>
+          
+          <div className="flex items-center gap-3">
+            <button className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors">
+              Login
+            </button>
+            <button className="px-4 py-2 text-sm font-medium bg-white/10 rounded-lg text-white hover:bg-white/20 transition-colors">
+              Sign up
+            </button>
+          </div>
         </div>
       )}
 
       <AnimatePresence mode="wait">
         {!hasStarted ? (
           /* Initial Search View */
-          <div className="flex-1 w-full pb-32">
-            <div className="w-full max-w-2xl mx-auto px-4 text-center relative mt-12 md:mt-20">
+          <div className="flex-1 w-full h-screen flex flex-col justify-center">
+            <div className="w-full max-w-2xl mx-auto px-4 text-center relative">
               <motion.div 
-                className="space-y-8 md:space-y-12"
+                className="space-y-6 md:space-y-8"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
               >
-                <h1 className="text-[40px] md:text-[50px] font-normal text-white tracking-tight leading-tight mt-12 md:mt-20">
+                <h1 className="text-[32px] md:text-[50px] font-normal text-white tracking-tight leading-tight">
                   Research Like a Pro
                 </h1>
                 
-                <form onSubmit={handleSubmit} className="space-y-8">
-                  {/* Input Box */}
-                  <div className="relative group">
-                    <div className="absolute -inset-1 bg-white/5 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300 group-hover:opacity-100 opacity-0" />
-                    <input
-                      type="text"
-                      value={query}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
-                      placeholder="What do you want to know?"
-                      className="search-input"
-                      disabled={isResearching}
-                    />
-                    <button
-                      type="submit"
-                      disabled={isResearching || !query.trim()}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-3 bg-zinc-800 text-white rounded-full hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg"
-                    >
-                      <IconWrapper icon={ArrowRight} className="w-5 h-5" />
-                    </button>
+                <form onSubmit={handleSubmit}>
+                  <div className="relative">
+                    <div className="relative flex flex-col gap-2 rounded-2xl bg-zinc-900 p-2">
+                      <textarea
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Ask anything..."
+                        className="min-h-[80px] md:min-h-[100px] w-full resize-none bg-transparent px-4 py-3 text-lg outline-none placeholder:text-zinc-400"
+                        style={{ height: 'auto' }}
+                      />
+                      <div className="flex items-center justify-between px-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-2 text-sm text-zinc-400">
+                            <div className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out bg-zinc-700 hover:bg-zinc-600 cursor-pointer"
+                                 onClick={() => setIsDeepResearch(!isDeepResearch)}>
+                              <div className={`inline-block h-4 w-4 transform rounded-full transition duration-200 ease-in-out ${isDeepResearch ? 'translate-x-6 bg-blue-500' : 'translate-x-1 bg-white'}`} />
+                            </div>
+                            <span className={isDeepResearch ? 'text-blue-500' : 'text-zinc-400'}>Deep Research</span>
+                          </label>
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={!query.trim() || isResearching}
+                          className="flex items-center justify-center rounded-full w-10 h-10 bg-white/10 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ArrowRight className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </form>
 
                 {/* Trending Researches */}
                 <motion.div 
-                  className="mt-12 relative"
+                  className="mt-6 md:mt-12 relative"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.4 }}
                 >
-                  <div className="flex items-center justify-center space-x-2 text-gray-400 mb-6">
+                  <div className="flex items-center justify-center space-x-2 text-gray-400 mb-4 md:mb-6">
                     <IconWrapper icon={TrendingUp} className="w-4 h-4" />
                     <span className="text-sm font-medium">Trending Researches</span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto px-4">
-                    {randomTrendingQueries.map((trendingQuery, index) => (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 max-w-3xl mx-auto">
+                    {randomTrendingQueries.slice(0, 4).map((trendingQuery, index) => (
                       <motion.button
                         key={index}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.3, delay: index * 0.1 }}
-                        onClick={() => setQuery(trendingQuery)}
-                        className="trending-card"
+                        onClick={() => {
+                          setQuery(trendingQuery)
+                          window.scrollTo({ top: 0, behavior: 'smooth' })
+                        }}
+                        className={`trending-card text-sm md:text-base ${index >= 2 ? 'hidden md:block' : ''}`}
                       >
                         {trendingQuery}
                       </motion.button>
@@ -518,6 +594,9 @@ export default function Home() {
                                       <span className="text-gray-400">Words: </span>
                                       <span className="text-white word-count">{wordCount}</span>
                                     </div>
+                                    <div className={`px-2 py-1 md:px-3 md:py-1.5 rounded-lg ${isDeepResearch ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-zinc-900'}`}>
+                                      <span className={isDeepResearch ? 'text-blue-300' : 'text-gray-400'}>{isDeepResearch ? 'Deep Research' : 'Normal'}</span>
+                                    </div>
                                   </div>
                                   <div className="flex items-center gap-2 md:gap-3">
                                     <AnimatePresence mode="sync">
@@ -613,23 +692,7 @@ export default function Home() {
                                   >
                                     <div className="flex items-start space-x-3">
                                       <div className="flex-shrink-0 w-4 h-4 mt-0.5">
-                                        {source.favicon ? (
-                                          <img 
-                                            src={source.favicon} 
-                                            alt="" 
-                                            className="w-4 h-4 rounded-sm"
-                                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                              const target = e.target as HTMLImageElement;
-                                              target.src = `https://www.google.com/s2/favicons?domain=${getHostname(source.url)}`;
-                                            }}
-                                          />
-                                        ) : (
-                                          <img 
-                                            src={`https://www.google.com/s2/favicons?domain=${getHostname(source.url)}`}
-                                            alt=""
-                                            className="w-4 h-4 rounded-sm"
-                                          />
-                                        )}
+                                        <FaviconImage source={source} />
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center space-x-2">
@@ -736,23 +799,7 @@ export default function Home() {
                                           >
                                             <div className="flex items-start space-x-3">
                                               <div className="flex-shrink-0 w-4 h-4 mt-0.5">
-                                                {source.favicon ? (
-                                                  <img 
-                                                    src={source.favicon} 
-                                                    alt="" 
-                                                    className="w-4 h-4 rounded-sm"
-                                                    onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                                                      const target = e.target as HTMLImageElement;
-                                                      target.src = `https://www.google.com/s2/favicons?domain=${getHostname(source.url)}`;
-                                                    }}
-                                                  />
-                                                ) : (
-                                                  <img 
-                                                    src={`https://www.google.com/s2/favicons?domain=${getHostname(source.url)}`}
-                                                    alt=""
-                                                    className="w-4 h-4 rounded-sm"
-                                                  />
-                                                )}
+                                                <FaviconImage source={source} />
                                               </div>
                                               <div className="flex-1 min-w-0">
                                                 <div className="flex items-center space-x-2">
