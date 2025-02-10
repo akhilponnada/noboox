@@ -1,7 +1,5 @@
 export type ModelType = 'gemini-2.0-flash';
 
-export type ResearchDepth = 'quick';
-
 export interface Source {
   title: string;
   url: string;

@@ -93,7 +93,6 @@ export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [content, setContent] = useState('')
   const [isResearching, setIsResearching] = useState(false)
-  const [isDeepResearch, setIsDeepResearch] = useState(false)
   const [sources, setSources] = useState<Array<{
     id: string;
     title: string;
@@ -140,12 +139,6 @@ export default function Home() {
   } | null>(null)
   const [wordCount, setWordCount] = useState(0)
   const [showSaveNotification, setShowSaveNotification] = useState(false)
-  const [researchPlan, setResearchPlan] = useState<{
-    query: string;
-    suggestedDirections: string[];
-    explanation: string;
-  } | null>(null)
-  const [isConfirmingResearch, setIsConfirmingResearch] = useState(false)
   const [isSourcesPanelOpen, setIsSourcesPanelOpen] = useState(false)
 
   const trendingQueries = [
@@ -206,7 +199,6 @@ export default function Home() {
     setSources([])
     setCurrentQuery(query)
     setIsEditing(false)
-    setResearchPlan(null)
 
     // Reset research steps
     setResearchSteps(steps => steps.map(step => ({ ...step, status: 'waiting' })))
@@ -222,8 +214,7 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: query }],
-          isDeepResearch: isDeepResearch
+          messages: [{ role: 'user', content: query }]
         })
       });
 
@@ -291,77 +282,6 @@ export default function Home() {
       setTimeout(() => {
         setIsResearching(false)
       }, 1000)
-    }
-  }
-
-  const handleConfirmResearch = async (modifiedDirections?: string[]) => {
-    if (!researchPlan) return;
-
-    setIsConfirmingResearch(false);
-    setIsResearching(true);
-    updateStepStatus('search', 'loading');
-
-    try {
-      const response = await fetch('/api/research', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: query }],
-          researchDepth: 'deep',
-          confirmedDirection: {
-            query: researchPlan.query,
-            context: '',
-            goals: modifiedDirections || researchPlan.suggestedDirections
-          }
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to confirm research');
-      }
-
-      const data = await response.json();
-      
-      if (data.content) {
-        setContent(data.content);
-        setMetadata({
-          sourceCount: data.metadata?.sourceCount || 0,
-          citationsUsed: data.metadata?.citationsUsed || 0,
-          sourceUsagePercent: data.metadata?.sourceUsagePercent || 0,
-          wordCount: data.metadata?.wordCount || 0
-        });
-        setWordCount(data.metadata?.wordCount || 0);
-        setEditedContent(data.content);
-        
-        setTimeout(() => {
-          updateStepStatus('generate', 'complete');
-        }, 500);
-      } else {
-        throw new Error('No content in response');
-      }
-    } catch (error) {
-      console.error('Error confirming research:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      
-      setResearchSteps(steps => 
-        steps.map(step => 
-          step.status === 'waiting' || step.status === 'loading' 
-            ? { ...step, status: 'error' } 
-            : step
-        )
-      );
-      
-      setContent(`<div class="text-red-400 text-center py-8">
-        <p class="mb-4">Sorry, something went wrong while confirming your research.</p>
-        <div class="text-sm bg-red-900/20 rounded-lg p-4 mb-4">${errorMessage}</div>
-        <p class="text-sm">Please try again or try a different query.</p>
-      </div>`);
-    } finally {
-      setTimeout(() => {
-        setIsResearching(false);
-      }, 1000);
     }
   }
 
@@ -440,18 +360,15 @@ export default function Home() {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Ask anything..."
-                        className="min-h-[80px] md:min-h-[100px] w-full resize-none bg-transparent px-4 py-3 text-lg outline-none placeholder:text-zinc-400"
+                        className="min-h-[60px] md:min-h-[80px] w-full resize-none bg-transparent px-4 py-3 text-lg outline-none placeholder:text-zinc-400"
                         style={{ height: 'auto' }}
                       />
                       <div className="flex items-center justify-between px-4 py-2">
-                        <div className="flex items-center gap-2">
-                          <label className="flex items-center gap-2 text-sm text-zinc-400">
-                            <div className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out bg-zinc-700 hover:bg-zinc-600 cursor-pointer"
-                                 onClick={() => setIsDeepResearch(!isDeepResearch)}>
-                              <div className={`inline-block h-4 w-4 transform rounded-full transition duration-200 ease-in-out ${isDeepResearch ? 'translate-x-6 bg-blue-500' : 'translate-x-1 bg-white'}`} />
-                            </div>
-                            <span className={isDeepResearch ? 'text-blue-500' : 'text-zinc-400'}>Deep Research</span>
-                          </label>
+                        <div className="flex items-center space-x-2 opacity-50 cursor-not-allowed">
+                          <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-zinc-800">
+                            <div className="inline-block h-4 w-4 transform rounded-full transition duration-200 ease-in-out translate-x-1 bg-white" />
+                          </div>
+                          <span className="text-zinc-400">Deep Research</span>
                         </div>
                         <button
                           type="submit"
@@ -594,8 +511,8 @@ export default function Home() {
                                       <span className="text-gray-400">Words: </span>
                                       <span className="text-white word-count">{wordCount}</span>
                                     </div>
-                                    <div className={`px-2 py-1 md:px-3 md:py-1.5 rounded-lg ${isDeepResearch ? 'bg-blue-500/20 border border-blue-500/30' : 'bg-zinc-900'}`}>
-                                      <span className={isDeepResearch ? 'text-blue-300' : 'text-gray-400'}>{isDeepResearch ? 'Deep Research' : 'Normal'}</span>
+                                    <div className="px-2 py-1 md:px-3 md:py-1.5 rounded-lg bg-zinc-900">
+                                      <span className="text-gray-400">Normal</span>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2 md:gap-3">
@@ -886,57 +803,6 @@ export default function Home() {
             <div className="text-gray-500 hover:text-gray-400 transition-colors duration-300">© Noboox 2025</div>
           </div>
         </motion.div>
-      )}
-
-      {isConfirmingResearch && researchPlan && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-zinc-900 rounded-lg p-6 max-w-2xl w-full space-y-4">
-            <h2 className="text-xl font-semibold">Confirm Research Plan</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-400">Reformulated Query</h3>
-                <p className="mt-1">{researchPlan.query}</p>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-gray-400">Research Directions</h3>
-                <ul className="mt-2 space-y-2">
-                  {researchPlan.suggestedDirections.map((direction, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-gray-500">{index + 1}.</span>
-                      <span>{direction}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-gray-400">Research Approach</h3>
-                <p className="mt-1 text-sm">{researchPlan.explanation}</p>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setIsConfirmingResearch(false);
-                  setIsResearching(false);
-                  setResearchPlan(null);
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleConfirmResearch()}
-                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Start Research
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </main>
   )
