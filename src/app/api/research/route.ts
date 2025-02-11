@@ -10,6 +10,7 @@ const googleSearch = new GoogleSearchClient(
 
 // Search configuration
 const QUICK_RESEARCH_MIN_SOURCES = 10
+const DEEP_RESEARCH_MIN_SOURCES = 30
 const ACADEMIC_DOMAINS = [
   'scholar.google.com',
   'arxiv.org',
@@ -76,9 +77,10 @@ function formatContentToHTML(content: string, sources: any[]): string {
     try {
       const url = new URL(source.url);
       const hostname = url.hostname.replace(/^www\./, '');
-      return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="citation" title="${source.title}">[${source.id} ${hostname}]</a>`;
+      const preview = source.title;
+      return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="citation" data-preview="${preview.replace(/"/g, '&quot;')}" title="${source.title}">[${source.id}]</a>`;
     } catch {
-      return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="citation" title="${source.title}">[${source.id}]</a>`;
+      return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="citation" data-preview="${source.title.replace(/"/g, '&quot;')}" title="${source.title}">[${source.id}]</a>`;
     }
   }
 
@@ -98,25 +100,37 @@ function formatContentToHTML(content: string, sources: any[]): string {
     .replace(/^- (.*$)/gm, '<li>$1</li>')
     .replace(/(<li.*\n*)+/g, '<ul>$&</ul>')
     // Format citations with appropriate style based on mode
-    .replace(/\[(\d+)\]/g, (match, id) => {
-      const source = sources.find(s => s.id === id);
-      if (!source) return match;
-      try {
-        const url = new URL(source.url);
-        const hostname = url.hostname.replace(/^www\./, '');
-        return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="citation" title="${source.title}">[${id} ${hostname}]</a>`;
-      } catch {
-        return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="citation" title="${source.title}">[${id}]</a>`;
-      }
+    .replace(/\[([^\]]+)\]/g, (match, ids) => {
+      // Split the citation numbers and handle ranges
+      const citations = ids.split(/,\s*/).flatMap(part => {
+        if (part.includes('-')) {
+          const [start, end] = part.split('-').map(Number);
+          return Array.from({ length: end - start + 1 }, (_, i) => String(start + i));
+        }
+        return [part.trim()];
+      });
+      
+      // Generate separate citation links for each source
+      return citations.map(id => {
+        const source = sources.find(s => s.id === id);
+        if (!source) return `[${id}]`;
+        try {
+          const url = new URL(source.url);
+          const hostname = url.hostname.replace(/^www\./, '');
+          return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="citation" title="${source.title}">[${id} ${hostname}]</a>`;
+        } catch {
+          return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="citation" title="${source.title}">[${id}]</a>`;
+        }
+      }).join(' '); // Join with space to separate citations
     });
 
   // Format paragraphs (must be done last to avoid interfering with other elements)
   html = html.replace(/^(?!<h[1-6]|<ul|<ol|<li|<blockquote|<pre|<p)(.+)$/gm, '<p>$1</p>');
   
-  // Clean up empty lines and normalize spacing
+  // Clean up empty lines and normalize spacing but preserve paragraph boundaries
   html = html
-    .replace(/\n+/g, '\n')
-    .replace(/^\s+|\s+$/g, '');
+    .replace(/\n{3,}/g, '\n\n') // Replace multiple newlines with double newlines
+    .replace(/^\s+|\s+$/g, ''); // Trim start and end whitespace
 
   // Validate the HTML structure
   if (!html?.trim() || html.length < 100) {
@@ -142,15 +156,15 @@ interface SearchResult {
   };
 }
 
-async function searchWithPriority(query: string): Promise<SearchResult[]> {
-  const minSources = QUICK_RESEARCH_MIN_SOURCES
+async function searchWithPriority(query: string, isDeepResearch: boolean = false): Promise<SearchResult[]> {
+  const minSources = isDeepResearch ? DEEP_RESEARCH_MIN_SOURCES : QUICK_RESEARCH_MIN_SOURCES
   let allResults: SearchResult[] = []
   
   try {
     // First try academic sources
     const academicQuery = `${query} site:(${ACADEMIC_DOMAINS.join(' OR ')})`
     await checkRateLimit()
-    const academicResponse = await googleSearch.search(academicQuery)
+    const academicResponse = await googleSearch.search(academicQuery, isDeepResearch ? 30 : 10)
     
     if (academicResponse?.items && academicResponse.items.length > 0) {
       allResults = [...academicResponse.items]
@@ -160,7 +174,7 @@ async function searchWithPriority(query: string): Promise<SearchResult[]> {
     if (allResults.length < minSources) {
       await checkRateLimit()
       const generalQuery = `${query} -site:(reddit.com OR quora.com OR medium.com)`
-      const generalResponse = await googleSearch.search(generalQuery)
+      const generalResponse = await googleSearch.search(generalQuery, isDeepResearch ? 20 : 10)
       
       if (generalResponse?.items && generalResponse.items.length > 0) {
         allResults = [...allResults, ...generalResponse.items]
@@ -171,7 +185,7 @@ async function searchWithPriority(query: string): Promise<SearchResult[]> {
     if (allResults.length < minSources) {
       await checkRateLimit()
       const backupQuery = `${query} research paper`
-      const backupResponse = await googleSearch.search(backupQuery)
+      const backupResponse = await googleSearch.search(backupQuery, isDeepResearch ? 20 : 10)
       
       if (backupResponse?.items && backupResponse.items.length > 0) {
         allResults = [...allResults, ...backupResponse.items]
@@ -190,113 +204,179 @@ async function searchWithPriority(query: string): Promise<SearchResult[]> {
   }
 }
 
-async function generateContent(query: string, sources: any[]) {
+async function generateContent(query: string, sources: any[], isDeepResearch: boolean = false) {
   try {
-    const prompt = `Based on the following sources, write a focused research analysis about "${query}".
+    const minAcceptableWords = isDeepResearch ? 1500 : 1000;
+    const targetWords = isDeepResearch ? 2500 : 1000;
+    const prompt = `Based on the following sources, write a ${isDeepResearch ? 'comprehensive and detailed' : 'focused'} research analysis about "${query}".
 
 Sources:
 ${sources.map(s => `[${s.id}] ${s.title}\n${s.snippet}\n`).join('\n')}
 
 Requirements:
-- Write a comprehensive analysis of at least 500 words
+- Write a comprehensive analysis aiming for ${targetWords} words (minimum ${minAcceptableWords} words)
 - Structure the content as follows:
   1. Introduction (brief overview)
   2. Main Analysis (detailed discussion)
   3. Research Methods (methodology overview)
   4. Data Analysis (key findings)
   5. Conclusion (summary and implications)
+- IMPORTANT: Use ALL provided sources at least once
+- Ensure balanced source distribution throughout the analysis
 - Use ONLY source numbers for citations: [1], [2], etc.
 - DO NOT add any text after the citation number
-- Compare different viewpoints
-- Draw evidence-based conclusions
+- Compare different viewpoints from multiple sources
+- Draw evidence-based conclusions using multiple sources
 - Use clear, academic language
-- Support claims with citations
-- Include key statistics and data points
+- Support ALL major claims with citations
+- Include key statistics and data points from sources
 - DO NOT include a references section
 - DO NOT stop in the middle of a sentence
+${isDeepResearch ? '- Provide in-depth analysis of methodologies used\n- Include detailed comparisons between different studies\n- Analyze limitations and future research directions\n- Ensure comprehensive coverage of all source materials' : ''}
 
 Use section headers to clearly separate each part of the analysis.`;
 
     // Using Gemini model with adjusted parameters for longer content
-    const geminiModel = googleAI.getGenerativeModel({ 
-      model: 'gemini-2.0-flash',
-      generationConfig: {
-        temperature: 0.8,  // Increased for more verbose output
-        maxOutputTokens: 8192,
-        topK: 40,
-        topP: 0.9,  // Increased for more diverse output
-      }
-    });
+        const geminiModel = googleAI.getGenerativeModel({ 
+          model: 'gemini-2.0-flash',
+          generationConfig: {
+        temperature: isDeepResearch ? 0.7 : 0.8,  // More focused for deep research
+        maxOutputTokens: isDeepResearch ? 16384 : 8192, // Double the tokens for deep research
+        topK: isDeepResearch ? 30 : 40,
+        topP: isDeepResearch ? 0.8 : 0.9,  // More focused for deep research
+          }
+        });
 
-    const geminiResult = await geminiModel.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        stopSequences: ["</div>"],
-      }
-    })
-    
-    if (!geminiResult.response.text()) {
-      throw new Error('Empty response from Gemini')
-    }
-    
+        const geminiResult = await geminiModel.generateContent({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: {
+            stopSequences: ["</div>"],
+          }
+        })
+        
+        if (!geminiResult.response.text()) {
+          throw new Error('Empty response from Gemini')
+        }
+        
     const content = geminiResult.response.text().trim()
     
     if (!content) {
-      throw new Error('No content generated by the AI model.')
-    }
+          throw new Error('No content generated by the AI model.')
+        }
 
-    // Single word count check
+    // Word count check
     const wordCount = content.split(/\s+/).length
     console.log(`Generated content word count: ${wordCount}`)
     
-    if (wordCount < 500) {
+    if (wordCount < minAcceptableWords) {
       throw new Error(`Generated content too short: ${wordCount} words. Please try again.`)
     }
 
+    // Check if all sources are used at least once
+    // Updated to handle multiple citations like [14, 16] or [13, 17]
+    const citationMatches = content.match(/\[([^\]]+)\]/g) || [];
+    const usedSourceIds = new Set(
+      citationMatches
+        .flatMap(citation => 
+          // Split on commas and handle ranges with hyphens
+          citation.replace(/[\[\]]/g, '')
+            .split(/,\s*/)
+            .flatMap(part => {
+              if (part.includes('-')) {
+                const [start, end] = part.split('-').map(Number);
+                return Array.from(
+                  { length: end - start + 1 }, 
+                  (_, i) => String(start + i)
+                );
+              }
+              return part.trim();
+            })
+        )
+    );
+    
+    const unusedSources = sources
+      .filter(source => !usedSourceIds.has(source.id))
+      .map(source => source.id);
+
+    if (unusedSources.length > 0) {
+      console.warn(`Warning: Some sources were not used: ${unusedSources.join(', ')}`);
+    }
+
+    // Calculate total citations including multiple citations
+    const totalCitations = citationMatches.reduce((count, citation) => {
+      const citations = citation
+        .replace(/[\[\]]/g, '')
+        .split(/,\s*/)
+        .flatMap(part => {
+          if (part.includes('-')) {
+            const [start, end] = part.split('-').map(Number);
+            return Array.from({ length: end - start + 1 });
+          }
+          return [part];
+        });
+      return count + citations.length;
+    }, 0);
+
+    console.log(`Total individual citations used: ${totalCitations}`);
+
     return content;
 
-  } catch (error) {
+      } catch (error) {
     console.error('Content generation error:', error)
-    let errorMessage = 'Failed to generate content.'
-    
-    if (error instanceof Error) {
-      if (error.message.includes('rate limit')) {
-        errorMessage = 'AI model rate limit exceeded. Please try again in a few moments.'
-      } else if (error.message.includes('quota')) {
-        errorMessage = 'AI model quota exceeded. Please try again later.'
-      } else if (error.message.includes('invalid')) {
-        errorMessage = 'Invalid request to AI model. Please try a different query.'
+        let errorMessage = 'Failed to generate content.'
+        
+        if (error instanceof Error) {
+          if (error.message.includes('rate limit')) {
+            errorMessage = 'AI model rate limit exceeded. Please try again in a few moments.'
+          } else if (error.message.includes('quota')) {
+            errorMessage = 'AI model quota exceeded. Please try again later.'
+          } else if (error.message.includes('invalid')) {
+            errorMessage = 'Invalid request to AI model. Please try a different query.'
       } else {
-        errorMessage = error.message // Use the actual error message
+        errorMessage = error.message
+          }
+        }
+        
+        throw new Error(errorMessage)
       }
-    }
-    
-    throw new Error(errorMessage)
-  }
 }
 
 export async function POST(request: Request) {
   try {
-    const { messages } = await request.json();
+    const { messages, isDeepResearch = false } = await request.json();
     const query = messages[0].content;
 
-    const sources = await searchWithPriority(query);
+    const sources = await searchWithPriority(query, isDeepResearch);
     
     // Format sources
     const formattedSources = sources.map((source, index) => ({
       id: String(index + 1),
       title: source.title,
       url: source.link,
-      snippet: source.snippet
+      snippet: source.snippet,
+      favicon: getFavicon(source)
     }));
 
     // Generate content using the model
-    const content = await generateContent(query, formattedSources);
+    const content = await generateContent(query, formattedSources, isDeepResearch);
     
-    // Calculate metadata
+    // Calculate metadata with improved citation counting
     const wordCount = content.trim().split(/\s+/).length;
-    const citationsUsed = (content.match(/\[\d+\]/g) || []).length;
-    
+    const citationMatches = content.match(/\[([^\]]+)\]/g) || [];
+    const citationsUsed = citationMatches.reduce((count, citation) => {
+      const citations = citation
+        .replace(/[\[\]]/g, '')
+        .split(/,\s*/)
+        .flatMap(part => {
+          if (part.includes('-')) {
+            const [start, end] = part.split('-').map(Number);
+            return Array.from({ length: end - start + 1 });
+          }
+          return [part];
+        });
+      return count + citations.length;
+    }, 0);
+
     return NextResponse.json({
       content: formatContentToHTML(content, formattedSources),
       sources: formattedSources,
@@ -305,7 +385,8 @@ export async function POST(request: Request) {
         citationsUsed,
         sourceUsagePercent: Math.round(citationsUsed / formattedSources.length * 100),
         wordCount,
-        model: 'gemini-2.0-flash'
+        model: 'gemini-2.0-flash',
+        isDeepResearch
       }
     });
   } catch (error: any) {

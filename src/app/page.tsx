@@ -5,6 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, Check, Pencil, ExternalLink, Twitter, Youtube, Instagram, Linkedin, Facebook, TrendingUp, LucideProps } from 'lucide-react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import type { Session } from '@supabase/supabase-js'
+import { createResearch } from '@/lib/db'
 
 // Import Editor and ResearchSteps dynamically to avoid SSR issues
 const Editor = dynamic(() => import('@/components/Editor'), { ssr: false })
@@ -91,6 +95,7 @@ const FaviconImage = ({ source }: { source: any }) => {
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
+  const [session, setSession] = useState<Session | null>(null)
   const [content, setContent] = useState('')
   const [isResearching, setIsResearching] = useState(false)
   const [sources, setSources] = useState<Array<{
@@ -140,6 +145,8 @@ export default function Home() {
   const [wordCount, setWordCount] = useState(0)
   const [showSaveNotification, setShowSaveNotification] = useState(false)
   const [isSourcesPanelOpen, setIsSourcesPanelOpen] = useState(false)
+  const router = useRouter()
+  const [isDeepResearch, setIsDeepResearch] = useState(false)
 
   const trendingQueries = [
     "What are the long-term psychological effects of social media usage on adolescent development and mental well-being?",
@@ -174,6 +181,20 @@ export default function Home() {
   // Handle client-side mounting
   useEffect(() => {
     setMounted(true)
+    
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   // Don't render anything until mounted
@@ -214,7 +235,8 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: query }]
+          messages: [{ role: 'user', content: query }],
+          isDeepResearch
         })
       });
 
@@ -251,6 +273,30 @@ export default function Home() {
         })
         setWordCount(data.metadata?.wordCount || 0)
         setEditedContent(data.content)
+
+        // Save to database if user is authenticated
+        if (session?.user?.id) {
+          console.log('Saving research to database...');
+          try {
+            const research = await createResearch(
+              session.user.id,
+              query,
+              data.content,
+              data.metadata.wordCount,
+              data.sources,
+              {
+                sourceCount: data.metadata.sourceCount,
+                citationsUsed: data.metadata.citationsUsed,
+                sourceUsagePercent: data.metadata.sourceUsagePercent
+              }
+            );
+            console.log('Research saved successfully:', research);
+          } catch (error) {
+            console.error('Error saving research:', error);
+          }
+        } else {
+          console.log('User not authenticated, skipping database save');
+        }
         
         // Short delay before marking generate as complete
         setTimeout(() => {
@@ -328,12 +374,32 @@ export default function Home() {
           </motion.div>
           
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors">
-              Login
-            </button>
-            <button className="px-4 py-2 text-sm font-medium bg-white/10 rounded-lg text-white hover:bg-white/20 transition-colors">
-              Sign up
-            </button>
+            {session ? (
+              <button 
+                onClick={async () => {
+                  await supabase.auth.signOut()
+                  router.push('/')
+                }}
+                className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+              >
+                Sign out
+              </button>
+            ) : (
+              <>
+                <button 
+                  onClick={() => router.push('/auth')}
+                  className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+                >
+                  Login
+                </button>
+                <button 
+                  onClick={() => router.push('/auth')}
+                  className="px-4 py-2 text-sm font-medium bg-white/10 rounded-lg text-white hover:bg-white/20 transition-colors"
+                >
+                  Sign up
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -364,12 +430,17 @@ export default function Home() {
                         style={{ height: 'auto' }}
                       />
                       <div className="flex items-center justify-between px-4 py-2">
-                        <div className="flex items-center space-x-2 opacity-50 cursor-not-allowed">
-                          <div className="relative inline-flex h-6 w-11 items-center rounded-full bg-zinc-800">
-                            <div className="inline-block h-4 w-4 transform rounded-full transition duration-200 ease-in-out translate-x-1 bg-white" />
+                        <button
+                          type="button"
+                          onClick={() => setIsDeepResearch(!isDeepResearch)}
+                          className={`flex items-center space-x-2 transition-opacity ${isResearching ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
+                          disabled={isResearching}
+                        >
+                          <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isDeepResearch ? 'bg-blue-600' : 'bg-zinc-800'}`}>
+                            <div className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isDeepResearch ? 'translate-x-6' : 'translate-x-1'}`} />
                           </div>
-                          <span className="text-zinc-400">Deep Research</span>
-                        </div>
+                          <span className={`text-sm ${isDeepResearch ? 'text-blue-400' : 'text-zinc-400'}`}>Deep Research</span>
+                        </button>
                         <button
                           type="submit"
                           disabled={!query.trim() || isResearching}
