@@ -127,7 +127,7 @@ IMPORTANT:
 
     } catch (error) {
       clearTimeout(timeoutId)
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         return NextResponse.json(
           { error: 'Request timed out. Please try again.' },
           { status: 504 }
