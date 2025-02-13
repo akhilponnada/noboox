@@ -4,15 +4,15 @@ import { useState, useEffect, FormEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, Check, Pencil, ExternalLink, Twitter, Youtube, Instagram, Linkedin, Facebook, TrendingUp, LucideProps } from 'lucide-react'
 import Image from 'next/image'
-import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { Session } from '@supabase/supabase-js'
 import { createResearch } from '@/lib/db'
 
-// Import Editor and ResearchSteps dynamically to avoid SSR issues
-const Editor = dynamic(() => import('@/components/Editor'), { ssr: false })
-const ResearchSteps = dynamic(() => import('@/components/ResearchSteps'), { ssr: false })
+// Import components directly instead of using dynamic imports
+import Editor from '@/components/Editor'
+import ResearchSteps from '@/components/ResearchSteps'
+import Cipher from '@/components/Cipher'
 
 function getHostname(url: string): string {
   try {
@@ -146,7 +146,15 @@ export default function Home() {
   const [showSaveNotification, setShowSaveNotification] = useState(false)
   const [isSourcesPanelOpen, setIsSourcesPanelOpen] = useState(false)
   const router = useRouter()
-  const [isDeepResearch, setIsDeepResearch] = useState(false)
+  const [isCipherVisible, setIsCipherVisible] = useState(false)
+
+  useEffect(() => {
+    console.log('Cipher visibility state:', {
+      isCipherVisible,
+      hasContent: Boolean(content),
+      isResearching
+    })
+  }, [isCipherVisible, content, isResearching])
 
   const trendingQueries = [
     "What are the long-term psychological effects of social media usage on adolescent development and mental well-being?",
@@ -235,8 +243,7 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: query }],
-          isDeepResearch
+          messages: [{ role: 'user', content: query }]
         })
       });
 
@@ -332,6 +339,7 @@ export default function Home() {
   }
 
   const handleContentChange = (html: string) => {
+    console.log('Content changing to:', html ? html.substring(0, 100) + '...' : 'empty')
     setContent(html)
     // Calculate word count from text content
     const text = html.replace(/<[^>]*>/g, ' ')
@@ -348,6 +356,24 @@ export default function Home() {
       setTimeout(() => setShowSaveNotification(false), 2000)
     }
     setIsEditing(!isEditing)
+  }
+
+  const handleCipherEdit = (newContent: string, newMetadata?: { citationsUsed: number; sourceUsagePercent: number }) => {
+    setContent(newContent)
+    setEditedContent(newContent)
+    // Calculate word count from text content
+    const text = newContent.replace(/<[^>]*>/g, ' ')
+    const words = text.trim().split(/\s+/).filter(word => word.length > 0)
+    setWordCount(words.length)
+
+    // Update metadata if provided
+    if (newMetadata && metadata) {
+      setMetadata({
+        ...metadata,
+        citationsUsed: newMetadata.citationsUsed,
+        sourceUsagePercent: newMetadata.sourceUsagePercent
+      })
+    }
   }
 
   return (
@@ -429,18 +455,7 @@ export default function Home() {
                         className="min-h-[60px] md:min-h-[80px] w-full resize-none bg-transparent px-4 py-3 text-lg outline-none placeholder:text-zinc-400"
                         style={{ height: 'auto' }}
                       />
-                      <div className="flex items-center justify-between px-4 py-2">
-                        <button
-                          type="button"
-                          onClick={() => setIsDeepResearch(!isDeepResearch)}
-                          className={`flex items-center space-x-2 transition-opacity ${isResearching ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
-                          disabled={isResearching}
-                        >
-                          <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isDeepResearch ? 'bg-blue-600' : 'bg-zinc-800'}`}>
-                            <div className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isDeepResearch ? 'translate-x-6' : 'translate-x-1'}`} />
-                          </div>
-                          <span className={`text-sm ${isDeepResearch ? 'text-blue-400' : 'text-zinc-400'}`}>Deep Research</span>
-                        </button>
+                      <div className="flex items-center justify-end px-4 py-2">
                         <button
                           type="submit"
                           disabled={!query.trim() || isResearching}
@@ -521,12 +536,12 @@ export default function Home() {
               <div className="flex-1 w-full">
                 <div className="flex h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)] relative">
                   <motion.div 
-                    className="flex-1 overflow-y-auto hide-scrollbar p-3 md:p-6 md:mr-[380px]"
+                    className="flex-1 overflow-y-auto hide-scrollbar p-3 md:p-6 md:ml-[350px]"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <div className="w-full md:pl-[22%] md:pr-[5%]">
+                    <div className="w-full md:pr-[31%] md:pl-[3%]">
                       {currentQuery && (
                         <motion.div 
                           className="mb-8 mt-2"
@@ -638,8 +653,8 @@ export default function Home() {
                   {/* Sources panel - Desktop */}
                   {!isResearching && content && (
                     <motion.div 
-                      className="hidden md:flex fixed right-6 top-24 bottom-8 bg-zinc-900 backdrop-blur-sm rounded-xl border border-white/10 shadow-2xl flex-col w-[380px]"
-                      initial={{ opacity: 0, x: 20 }}
+                      className="hidden md:flex fixed left-4 top-24 bottom-8 bg-zinc-900 backdrop-blur-sm rounded-xl border border-white/10 shadow-2xl flex-col w-[340px]"
+                      initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.3 }}
                     >
@@ -844,6 +859,14 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Add Cipher component after research content is loaded */}
+      {!isResearching && content && (
+        <Cipher
+          content={content}
+          onEdit={(newContent, newMetadata) => handleCipherEdit(newContent, newMetadata)}
+        />
+      )}
 
       {/* Footer - only show on initial page */}
       {!hasStarted && (

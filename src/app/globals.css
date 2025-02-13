@@ -76,6 +76,9 @@
 
 .prose p {
   @apply mb-4 leading-relaxed text-gray-300;
+  text-align: justify;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .prose strong {
@@ -99,11 +102,23 @@
 }
 
 .prose a.citation {
-  @apply no-underline hover:no-underline;
+  @apply inline-flex items-center no-underline hover:no-underline;
+  font-size: 0.85em;
+  padding: 0 0.25rem;
+  margin: 0 0.15rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 4px;
+  color: #93c5fd;
+  vertical-align: baseline;
+  line-height: inherit;
+  position: relative;
 }
 
-.prose a.citation sup {
-  @apply bg-blue-500/10 px-1.5 py-0.5 rounded text-blue-400 hover:text-blue-300 transition-colors;
+.prose a.citation:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #bfdbfe;
 }
 
 /* Smooth scrolling */

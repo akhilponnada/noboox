@@ -77,8 +77,7 @@ function formatContentToHTML(content: string, sources: any[]): string {
     try {
       const url = new URL(source.url);
       const hostname = url.hostname.replace(/^www\./, '');
-      const preview = source.title;
-      return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="citation" data-preview="${preview.replace(/"/g, '&quot;')}" title="${source.title}">[${source.id}]</a>`;
+      return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="citation" data-preview="${source.title.replace(/"/g, '&quot;')}" title="${source.title}">[${source.id}]</a>`;
     } catch {
       return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="citation" data-preview="${source.title.replace(/"/g, '&quot;')}" title="${source.title}">[${source.id}]</a>`;
     }
@@ -100,9 +99,9 @@ function formatContentToHTML(content: string, sources: any[]): string {
     .replace(/^- (.*$)/gm, '<li>$1</li>')
     .replace(/(<li.*\n*)+/g, '<ul>$&</ul>')
     // Format citations with appropriate style based on mode
-    .replace(/\[([^\]]+)\]/g, (match, ids) => {
+    .replace(/\[([^\]]+)\]/g, (match: string, ids: string) => {
       // Split the citation numbers and handle ranges
-      const citations = ids.split(/,\s*/).flatMap(part => {
+      const citations = ids.split(/,\s*/).flatMap((part: string) => {
         if (part.includes('-')) {
           const [start, end] = part.split('-').map(Number);
           return Array.from({ length: end - start + 1 }, (_, i) => String(start + i));
@@ -111,26 +110,27 @@ function formatContentToHTML(content: string, sources: any[]): string {
       });
       
       // Generate separate citation links for each source
-      return citations.map(id => {
-        const source = sources.find(s => s.id === id);
+      return citations.map((id: string) => {
+      const source = sources.find(s => s.id === id);
         if (!source) return `[${id}]`;
-        try {
-          const url = new URL(source.url);
-          const hostname = url.hostname.replace(/^www\./, '');
-          return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="citation" title="${source.title}">[${id} ${hostname}]</a>`;
-        } catch {
-          return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="citation" title="${source.title}">[${id}]</a>`;
-        }
-      }).join(' '); // Join with space to separate citations
+        return getCitation(source);
+      }).join('');
     });
 
   // Format paragraphs (must be done last to avoid interfering with other elements)
-  html = html.replace(/^(?!<h[1-6]|<ul|<ol|<li|<blockquote|<pre|<p)(.+)$/gm, '<p>$1</p>');
-  
-  // Clean up empty lines and normalize spacing but preserve paragraph boundaries
   html = html
-    .replace(/\n{3,}/g, '\n\n') // Replace multiple newlines with double newlines
-    .replace(/^\s+|\s+$/g, ''); // Trim start and end whitespace
+    // First, ensure consistent newlines
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    // Wrap text in paragraphs
+    .replace(/^(?!<h[1-6]|<ul|<ol|<li|<blockquote|<pre|<p)(.+)$/gm, '<p>$1</p>')
+    // Clean up empty paragraphs and normalize spacing
+    .replace(/<p>\s*<\/p>/g, '')
+    .replace(/^\s+|\s+$/g, '')
+    // Fix spacing around citations
+    .replace(/\s*(<a[^>]+class="citation"[^>]*>.*?<\/a>)\s*/g, ' $1 ')
+    // Clean up multiple spaces
+    .replace(/\s{2,}/g, ' ');
 
   // Validate the HTML structure
   if (!html?.trim() || html.length < 100) {
@@ -156,6 +156,10 @@ interface SearchResult {
   };
 }
 
+interface GoogleSearchOptions {
+  num?: number;
+}
+
 async function searchWithPriority(query: string, isDeepResearch: boolean = false): Promise<SearchResult[]> {
   const minSources = isDeepResearch ? DEEP_RESEARCH_MIN_SOURCES : QUICK_RESEARCH_MIN_SOURCES
   let allResults: SearchResult[] = []
@@ -164,7 +168,7 @@ async function searchWithPriority(query: string, isDeepResearch: boolean = false
     // First try academic sources
     const academicQuery = `${query} site:(${ACADEMIC_DOMAINS.join(' OR ')})`
     await checkRateLimit()
-    const academicResponse = await googleSearch.search(academicQuery, isDeepResearch ? 30 : 10)
+    const academicResponse = await googleSearch.search(academicQuery, { num: isDeepResearch ? 30 : 10 })
     
     if (academicResponse?.items && academicResponse.items.length > 0) {
       allResults = [...academicResponse.items]
@@ -174,7 +178,7 @@ async function searchWithPriority(query: string, isDeepResearch: boolean = false
     if (allResults.length < minSources) {
       await checkRateLimit()
       const generalQuery = `${query} -site:(reddit.com OR quora.com OR medium.com)`
-      const generalResponse = await googleSearch.search(generalQuery, isDeepResearch ? 20 : 10)
+      const generalResponse = await googleSearch.search(generalQuery, { num: isDeepResearch ? 20 : 10 })
       
       if (generalResponse?.items && generalResponse.items.length > 0) {
         allResults = [...allResults, ...generalResponse.items]
@@ -185,7 +189,7 @@ async function searchWithPriority(query: string, isDeepResearch: boolean = false
     if (allResults.length < minSources) {
       await checkRateLimit()
       const backupQuery = `${query} research paper`
-      const backupResponse = await googleSearch.search(backupQuery, isDeepResearch ? 20 : 10)
+      const backupResponse = await googleSearch.search(backupQuery, { num: isDeepResearch ? 20 : 10 })
       
       if (backupResponse?.items && backupResponse.items.length > 0) {
         allResults = [...allResults, ...backupResponse.items]
