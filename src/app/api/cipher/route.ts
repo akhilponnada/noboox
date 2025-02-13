@@ -37,6 +37,33 @@ function cleanJsonResponse(response: string): string {
     .trim();
 }
 
+// Add retry logic at the top
+const MAX_RETRIES = 2;
+const INITIAL_TIMEOUT = 15000; // 15 seconds
+
+async function retryWithTimeout<T>(
+  operation: () => Promise<T>,
+  timeoutMs: number,
+  retries: number = 0
+): Promise<T> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const result = await operation();
+    clearTimeout(timeoutId);
+    return result;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (retries > 0 && error instanceof Error) {
+      console.log(`Retrying operation, ${retries} attempts remaining...`);
+      // Increase timeout for next retry
+      return retryWithTimeout(operation, timeoutMs * 1.5, retries - 1);
+    }
+    throw error;
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const { request: userRequest, currentContent } = await request.json()
@@ -79,29 +106,30 @@ IMPORTANT:
 - Keep all other content exactly the same
 - Use only existing citations [${availableIds}]`
 
-    // Add timeout to the Gemini API call
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 second timeout
-
     try {
       const model = googleAI.getGenerativeModel({ 
         model: 'gemini-2.0-flash',
         generationConfig: {
           temperature: 0.1,
-          maxOutputTokens: 4096, // Reduced from 8192
+          maxOutputTokens: 4096,
           topK: 1,
           topP: 0.1,
         }
       })
 
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          stopSequences: ["</div>"],
-        }
-      }, { signal: controller.signal })
-
-      clearTimeout(timeoutId)
+      // Use retry logic with timeout
+      const result = await retryWithTimeout(
+        async () => {
+          return model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+              stopSequences: ["</div>"],
+            }
+          })
+        },
+        INITIAL_TIMEOUT,
+        MAX_RETRIES
+      );
 
       let response = result.response.text()
       if (!response) {
@@ -126,12 +154,20 @@ IMPORTANT:
       }
 
     } catch (error) {
-      clearTimeout(timeoutId)
-      if (error instanceof Error && error.name === 'AbortError') {
-        return NextResponse.json(
-          { error: 'Request timed out. Please try again.' },
-          { status: 504 }
-        )
+      if (error instanceof Error) {
+        if (error.name === 'AbortError' || error.message.includes('aborted')) {
+          return NextResponse.json(
+            { error: 'Request timed out. Please try again.' },
+            { status: 504 }
+          )
+        }
+        // Handle rate limiting errors
+        if (error.message.includes('429') || error.message.includes('rate')) {
+          return NextResponse.json(
+            { error: 'Too many requests. Please wait a moment and try again.' },
+            { status: 429 }
+          )
+        }
       }
       throw error
     }
